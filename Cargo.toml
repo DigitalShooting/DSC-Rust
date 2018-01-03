@@ -1,0 +1,11 @@
+[package]
+name = "dsc"
+version = "0.1.0"
+authors = ["Jannik Lorenz <dev@janniklorenz.de>"]
+
+[dependencies]
+serde = { version = "1.0", optional = false }
+serde_derive = { version = "1.0", optional = false }
+serde_json = { version = "1.0", optional = false }
+websocket = "0.20.2"
+time = "0.1.38"
