@@ -8,11 +8,14 @@
     <script>
       var socket = new WebSocket("ws://127.0.0.1:3009", "rust-websocket");
       socket.onmessage = function (event) {
-        var received = document.getElementById("received");
-        var br = document.createElement("BR");
-        var text = document.createTextNode(event.data);
-        received.appendChild(br);
-        received.appendChild(text);
+        // var received = document.getElementById("received");
+        // var br = document.createElement("BR");
+        // var text = document.createTextNode(event.data);
+        // received.appendChild(br);
+        // received.appendChild(text);
+        let data = JSON.parse(event.data);
+        console.log(data)
+        document.getElementById("received").value = event.data;
       };
 
       function new_target() {
@@ -32,9 +35,7 @@
         socket.send(JSON.stringify(element));
       }
     </script>
-      <p id="received">
-        <strong>Received Messages:</strong>
-      </p>
+      <p id="received"></p>
       <button onclick="new_target()">new_target</button>
       <button onclick="set_disciplin()">set_disciplin</button>
   </body>

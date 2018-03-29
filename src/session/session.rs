@@ -16,6 +16,7 @@ pub struct Session {
     pub club: Club,
     pub team: Team,
     active_session: usize,
+    sum: f64,
 }
 
 impl Session {
@@ -29,6 +30,7 @@ impl Session {
             club: Club::empty(),
             team: Team::empty(),
             active_session: 0,
+            sum: 0_f64,
         }
     }
 }
@@ -40,6 +42,7 @@ impl Session {
 pub struct Part {
     pub series: Vec<Series>,
     pub part_type: PartType,
+    sum: f64,
 }
 
 pub type PartType = String;
@@ -52,6 +55,7 @@ impl Part {
                 Series::new(),
             ],
             part_type: String::from("probe"),
+            sum: 0_f64,
         }
     }
 
@@ -77,12 +81,14 @@ impl Part {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Series {
     pub shots: Vec<Shot>,
+    sum: f64,
 }
 
 impl Series {
     pub fn new() -> Series {
         Series {
             shots: vec![],
+            sum: 0_f64,
         }
     }
 }
@@ -107,6 +113,11 @@ pub trait AddShot {
 
 impl AddShot for Session {
     fn add_shot(&mut self, shot: Shot, discipline: &Discipline) {
+        // add ring count to session sum
+        // TODO round
+        self.sum += shot.ring_count;
+
+        // add shot to the active session
         let active_session = &mut self.parts[self.active_session];
         active_session.add_shot(shot, discipline);
     }
@@ -116,6 +127,11 @@ impl AddShot for Part {
     fn add_shot(&mut self, shot: Shot, discipline: &Discipline) {
         match self.get_discipline_part(discipline) {
             Some(discipline_part) => {
+                // Add the ring count to the part sum
+                // TODO round
+                self.sum += shot.ring_count;
+                self.sum = (self.sum*10_f64).round() / 10_f64;
+
                 // Add new series if the current series is full
                 let mut index = self.series.len()-1;
                 if self.series[index].is_full(discipline_part) {
@@ -133,6 +149,11 @@ impl AddShot for Part {
 
 impl AddShot for Series {
     fn add_shot(&mut self, shot: Shot, _discipline: &Discipline) {
+        // add ring count so series sum
+        // TODO round
+        self.sum += shot.ring_count;
+
+        // add shot to series
         self.shots.push(shot);
     }
 }

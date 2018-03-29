@@ -1,4 +1,4 @@
-
+use rand::{self, Rng};
 
 use helper::round_to_one::RoundToOne;
 use discipline::*;
@@ -11,10 +11,18 @@ pub struct Shot {
     pub x: i32,
     pub y: i32,
     pub ring: f64,
+    pub ring_count: f64,
     // date: ???,
 }
 
 impl Shot {
+    pub fn random(target: &Target) -> Shot {
+        let mut rng = rand::thread_rng();
+        let x = rng.gen_range(-3000, 3000);
+        let y = rng.gen_range(-3000, 3000);
+        return Shot::from_cartesian_coordinates(x, y, target);
+    }
+
     // fn from_cartesian_coordinates(x: i32, y: i32, target: Target, part: Part) -> Shot {
     pub fn from_cartesian_coordinates(x: i32, y: i32, target: &Target) -> Shot {
         let x_f64 = x as f64;
@@ -35,14 +43,17 @@ impl Shot {
         // this.ring.display = parseFloat(ring).toFixed(1);
         // this.ring.int = parseFloat(ring).toFixedDown(0);
 
+        // TODO use ring_count
         // if (part.zehntel === true) {
         //   this.ring.value = parseFloat(ring).toFixedDown(1);
         // }
         // else {
         //   this.ring.value = parseFloat(ring).toFixedDown(0);
         // }
+        // let ring_count = (ring*10_f64).round() / 10_f64;
+        let ring_count = ring.round();
 
-        return Shot {teiler, angle, x, y, ring};
+        return Shot {teiler, angle, x, y, ring, ring_count};
     }
 
     fn get_ring_from_teiler(teiler: f64, target: &Target) -> f64 {

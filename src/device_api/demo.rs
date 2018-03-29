@@ -1,44 +1,56 @@
-use std::sync::{Arc, Mutex};
+// use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
-
-
+// use std::error::Error;
 
 use session::*;
-use dsc_manager::*;
+// use dsc_manager::*;
 
 use helper;
 
-use device_api::api::API;
+use api::API;
+use api::Action;
 
 
-
-pub struct Demo<'a> {
-    pub interval: i32,
-    pub manager: &'a Arc<Mutex<DSCManager>>,
+pub struct Demo {
+    // interval in which we generate shots (millisec.)
+    interval: u64,
 }
 
-impl<'a> Demo<'a> {
-    pub fn new(manager: &'a Arc<Mutex<DSCManager>>) -> Demo {
-        Demo { interval: 100, manager }
+impl Demo {
+    pub fn new() -> Demo {
+        Demo { interval: 100_u64 }
     }
 
-    fn generate_shot(manager: &'a Arc<Mutex<DSCManager>>) {
+    fn generate_shot(tx: mpsc::Sender<Action>) {
         let target = helper::dsc_demo::lg_target();
-        let shot1 = Shot::from_cartesian_coordinates(-100, -100, &target);
-        manager.lock().unwrap().new_shot(shot1);
+        let shot = Shot::random(&target);
+        tx.send(Action::NewShot(shot));
     }
 }
 
 
 
-impl<'a> API for Demo<'a> {
-    fn start(&mut self) {
-        let manager = self.manager.clone();
+impl API for Demo {
+    fn start(&mut self, tx: mpsc::Sender<Action>, rx: mpsc::Receiver<Action>) {
+
+        let interval = self.interval;
         thread::spawn(move || {
             loop {
-                thread::sleep(Duration::from_secs(1));
-                // Demo::generate_shot(&manager);
+                match rx.try_recv() {
+                    // Stop if we got a stop message or the channel disconnected
+                    Ok(Action::Stop) | Err(TryRecvError::Disconnected) => {
+                        println!("Stopping DeviceAPI");
+                        break;
+                    },
+                    // When we got no message we generate a shot
+                    Err(TryRecvError::Empty) => {
+                        Demo::generate_shot(tx.clone());
+                        thread::sleep(Duration::from_millis(interval));
+                    }
+                    _ => {},
+                }
             }
         });
     }

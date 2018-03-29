@@ -1,4 +1,4 @@
-// use websocket;
+use websocket;
 use websocket::OwnedMessage;
 use websocket::sync::Server;
 
@@ -11,6 +11,7 @@ use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 use std::time::Duration;
 
 use dsc_manager::*;
+use device_api::api::{Action};
 
 use helper;
 
@@ -30,7 +31,7 @@ pub enum RequestType {
 
 
 
-pub fn start_websocket<'a>(config: Config, manager: &'a Arc<Mutex<DSCManager>>) {
+pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on_update_rx: mpsc::Receiver<Update>) {
     println!("[web::socket][start_websocket] start on: {}", config.address_port);
 
     let server;
@@ -42,35 +43,34 @@ pub fn start_websocket<'a>(config: Config, manager: &'a Arc<Mutex<DSCManager>>) 
         },
     }
 
-    let (dispatcher_tx, dispatcher_rx) = mpsc::channel::<String>();
-    match manager.lock() {
-        Ok(mut manager) => manager.on_change_channel = Some(dispatcher_tx.clone()),
-        Err(err) => println!("{:?}", err),
-    }
-
     let client_senders: Arc<Mutex<Vec<mpsc::Sender<String>>>> = Arc::new(Mutex::new(vec![]));
 
     // dispatcher thread
     {
         let client_senders = client_senders.clone();
         thread::spawn(move || {
-            while let Ok(msg) = dispatcher_rx.recv() {
-                match client_senders.lock() {
-                    Ok(senders) => {
-                        for sender in senders.iter() {
-                            match sender.send(msg.clone()) {
-                                Result::Ok(_) => {},
-                                Result::Err(err) => {
-                                    println!("{:?}", err);
-                                    return;
-                                },
-                            };
+            while let Ok(msg) = on_update_rx.recv() {
+                match msg {
+                    Update::Data(string) => {
+                        match client_senders.lock() {
+                            Ok(senders) => {
+                                for sender in senders.iter() {
+                                    match sender.send(string.clone()) {
+                                        Result::Ok(_) => {},
+                                        Result::Err(err) => {
+                                            println!("{:?}", err);
+                                            return;
+                                        },
+                                    };
+                                }
+                            },
+                            Err(err) => {
+                                println!("{:?}", err);
+                                return;
+                            },
                         }
                     },
-                    Err(err) => {
-                        println!("{:?}", err);
-                        return;
-                    },
+                    Update::Error(err) => println!("{:?}", err),
                 }
             }
         });
@@ -78,7 +78,6 @@ pub fn start_websocket<'a>(config: Config, manager: &'a Arc<Mutex<DSCManager>>) 
 
     // client threads
     for request in server.filter_map(Result::ok) {
-        let dispatcher = dispatcher_tx.clone();
         let (client_tx, client_rx) = mpsc::channel();
 
         match client_senders.lock() {
@@ -90,7 +89,7 @@ pub fn start_websocket<'a>(config: Config, manager: &'a Arc<Mutex<DSCManager>>) 
         };
 
         // Spawn a new thread for each connection.
-        let manager_copy = manager.clone();
+        let set_event_tx_copy = set_event_tx.clone();
         thread::spawn(move || {
             if !request.protocols().contains(&"rust-websocket".to_string()) {
                 match request.reject() {
@@ -145,30 +144,29 @@ pub fn start_websocket<'a>(config: Config, manager: &'a Arc<Mutex<DSCManager>>) 
                             OwnedMessage::Text(text) => {
                                 // dispatcher.send(text).unwrap_or(());
 
-                                if let Ok(mut manager) = manager_copy.lock() {
-                                    match parse_request(&text) {
-                                        Ok(request_type) => {
-                                            println!("{:?}", request_type);
-                                            match request_type {
-                                                RequestType::NewTarget => manager.new_target(),
-                                                RequestType::SetDisciplin{ name } => {
 
-                                                    // TODO get disziplin by name
-                                                    let discipline = helper::dsc_demo::lg_discipline();
+                                match parse_request(&text) {
+                                    Ok(request_type) => {
+                                        println!("{:?}", request_type);
+                                        match request_type {
+                                            RequestType::NewTarget => {
+                                                println!("RequestType::NewTarget");
+                                                let _ = set_event_tx_copy.send(Event::NewTarget);
+                                            },
+                                            RequestType::SetDisciplin{ name } => {
 
-                                                    manager.set_disciplin(discipline);
-                                                },
-                                                RequestType::Shutdown => {
-                                                    println!("Not Implemented");
-                                                },
-                                            };
+                                                // TODO get disziplin by name
+                                                let discipline = helper::dsc_demo::lg_discipline();
 
-                                        },
-                                        Err(err) => println!("Parsing Error {:?}", err),
-                                    }
-                                }
-                                else {
-                                    println!("Error during manager.lock()");
+                                                let _ = set_event_tx_copy.send(Event::SetDisciplin(discipline));
+                                            },
+                                            RequestType::Shutdown => {
+                                                println!("Not Implemented");
+                                            },
+                                        };
+
+                                    },
+                                    Err(err) => println!("Parsing Error {:?}", err),
                                 }
                             },
                             _ => {},
