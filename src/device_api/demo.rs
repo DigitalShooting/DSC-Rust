@@ -20,7 +20,7 @@ pub struct Demo {
 
 impl Demo {
     pub fn new() -> Demo {
-        Demo { interval: 100_u64 }
+        Demo { interval: 2000_u64 }
     }
 
     fn generate_shot(tx: mpsc::Sender<Action>) {

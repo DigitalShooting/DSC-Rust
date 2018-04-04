@@ -4,6 +4,8 @@ use std::thread;
 use std::time::Duration;
 // use std::sync::mpsc::Sender;
 
+use helper;
+
 use session::*;
 use discipline::*;
 use device_api;
@@ -35,7 +37,6 @@ pub enum Event {
 
 pub struct DSCManager {
     pub session: Session,
-    discipline: Option<Discipline>,
 
     // Channel for sending changes to the socket api
     on_update_tx: mpsc::Sender<Update>,
@@ -55,14 +56,13 @@ pub struct DSCManager {
 
 impl DSCManager {
     pub fn new_with_default(on_update_tx: mpsc::Sender<Update>) -> DSCManager {
-        let session = Session::new();
-        // let discipline = helper::dsc_demo::lg_discipline();
+        let discipline = helper::dsc_demo::lg_discipline();
+        let session = Session::new(discipline);
 
         let (get_from_device_tx, get_from_device_rx) = mpsc::channel::<Action>();
         let (set_event_tx, set_event_rx) = mpsc::channel::<Event>();
         return DSCManager {
             session,
-            discipline: None,
             on_update_tx,
             set_event_tx, set_event_rx,
             get_from_device_tx, get_from_device_rx,
@@ -82,10 +82,7 @@ impl DSCManager {
             if let Ok(message) = self.get_from_device_rx.try_recv() {
                 match message {
                     Action::NewShot(shot) => {
-                        match self.discipline {
-                            Some(ref discipline) => self.session.add_shot(shot, &discipline),
-                            _ => println!("Error NewShot called without discipline"),
-                        }
+                        self.session.add_shot(shot);
                         self.update_sessions();
                     },
                     Action::Error(err) => {
@@ -102,9 +99,8 @@ impl DSCManager {
                     },
                     Event::SetDisciplin(discipline) => {
                         self.stop_shot_provider();
-                        self.session = Session::new();
                         self.start_shot_provider(&discipline);
-                        self.discipline = Some(discipline);
+                        self.session = Session::new(discipline);
                     },
                     Event::SetUser(user) => {
                         println!("Set User {:?}", user);
@@ -141,9 +137,8 @@ impl DSCManager {
         println!("Starting Shot Provider");
 
         // TODO get from device config
+        let mut shot_provider = device_api::Demo::new();
         // let mut shot_provider = device_api::ESA::new("/dev/ttyUSB0".to_string());
-        // let mut shot_provider = device_api::Demo::new();
-        let mut shot_provider = device_api::ESA::new("/dev/ttyUSB0".to_string());
 
 
         // With this channel we can set stuff to the shot_provider

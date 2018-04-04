@@ -18,8 +18,8 @@ pub struct Shot {
 impl Shot {
     pub fn random(target: &Target) -> Shot {
         let mut rng = rand::thread_rng();
-        let x = rng.gen_range(-3000, 3000);
-        let y = rng.gen_range(-3000, 3000);
+        let x = rng.gen_range(-8000, 8000);
+        let y = rng.gen_range(-8000, 8000);
         return Shot::from_cartesian_coordinates(x, y, target);
     }
 
@@ -51,7 +51,7 @@ impl Shot {
         //   this.ring.value = parseFloat(ring).toFixedDown(0);
         // }
         // let ring_count = (ring*10_f64).round() / 10_f64;
-        let ring_count = ring.round();
+        let ring_count = ring.floor();
 
         return Shot {teiler, angle, x, y, ring, ring_count};
     }

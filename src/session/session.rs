@@ -12,6 +12,7 @@ use discipline::*;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
     pub parts: Vec<Part>,
+    pub discipline: Discipline,
     pub user: User,
     pub club: Club,
     pub team: Team,
@@ -20,12 +21,12 @@ pub struct Session {
 }
 
 impl Session {
-    // fn new(discipline: Discipline) -> Session {
-    pub fn new() -> Session {
+    pub fn new(discipline: Discipline) -> Session {
         Session {
             parts: vec![
                 Part::new(),
             ],
+            discipline: discipline,
             user: User::empty(),
             club: Club::empty(),
             team: Team::empty(),
@@ -107,19 +108,22 @@ impl Series {
 
 
 
+pub trait AddShot_Raw {
+    fn add_shot(&mut self, Shot);
+}
 pub trait AddShot {
     fn add_shot(&mut self, Shot, &Discipline);
 }
 
-impl AddShot for Session {
-    fn add_shot(&mut self, shot: Shot, discipline: &Discipline) {
+impl AddShot_Raw for Session {
+    fn add_shot(&mut self, shot: Shot) {
         // add ring count to session sum
         // TODO round
         self.sum += shot.ring_count;
 
         // add shot to the active session
         let active_session = &mut self.parts[self.active_session];
-        active_session.add_shot(shot, discipline);
+        active_session.add_shot(shot, &self.discipline);
     }
 }
 
