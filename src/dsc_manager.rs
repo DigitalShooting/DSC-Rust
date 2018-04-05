@@ -9,7 +9,7 @@ use helper;
 use session::*;
 use discipline::*;
 use device_api;
-use device_api::api::{API, Action};
+use device_api::api::{API, Action, DeviceCommand};
 
 use serde_json;
 
@@ -51,7 +51,7 @@ pub struct DSCManager {
     get_from_device_tx: mpsc::Sender<Action>,
     get_from_device_rx: mpsc::Receiver<Action>,
 
-    set_to_device_tx: Option<mpsc::Sender<Action>>,
+    set_to_device_tx: Option<mpsc::Sender<DeviceCommand>>,
 }
 
 impl DSCManager {
@@ -143,7 +143,7 @@ impl DSCManager {
 
         // With this channel we can set stuff to the shot_provider
         // used to stop the device or trigger manual update (paper move, etc.)
-        let (set_to_device_tx, set_to_device_rx) = mpsc::channel::<Action>();
+        let (set_to_device_tx, set_to_device_rx) = mpsc::channel::<DeviceCommand>();
         self.set_to_device_tx = Some(set_to_device_tx);
 
         shot_provider.start(self.get_from_device_tx.clone(), set_to_device_rx);
@@ -154,7 +154,7 @@ impl DSCManager {
         println!("Stopping Shot Provider");
         match self.set_to_device_tx {
             Some(ref mut tx) => {
-                tx.send(Action::Stop);
+                tx.send(DeviceCommand::Stop);
             },
             None => {},
         }

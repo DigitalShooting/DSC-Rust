@@ -27,7 +27,7 @@ impl Session {
                 Part::new(),
             ],
             discipline: discipline,
-            user: User::empty(),
+            user: User::guest(),
             club: Club::empty(),
             team: Team::empty(),
             active_session: 0,

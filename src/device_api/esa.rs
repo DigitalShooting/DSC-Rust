@@ -4,50 +4,31 @@ use std::time::Duration;
 use std::env;
 use std::io;
 use std::error::Error;
-
-
 use std::io::prelude::*;
 use serial::prelude::*;
 use serial;
 use serial::SystemPort;
 
-
-
-use session::*;
-use dsc_manager::*;
-
+use session::Shot;
+use api::{API, Action, DeviceCommand};
 use helper;
 
-use api::API;
-use api::Action;
 
 
-
-/*
-dsc_manager -> shot_provider
-- stop signal
-==> Erzeugt beim aufruf von start, returns tx
-
-shot_provider -> dsc_manager
-- onNewShot
-- onError
-==> Erzeugt von dsc_manager
-
-*/
-
-
-
-
+/// DeviceAPI for Haering ESA.
 pub struct ESA {
-    // port: Option<SystemPort>,
+    /// Path to the serial device connected to the ESA interface.
     path: String,
 }
 
 impl ESA {
+    /// Init new DeviceAPI for ESA.
+    /// path:   Path to the serial device connected to the ESA interface.
     pub fn new(path: String) -> ESA {
         ESA { path }
     }
 
+    /// Configure serial port to requied parameters
     fn initSerial(path: String) -> serial::Result<SystemPort> {
         let mut port = serial::open(&path)?;
 
@@ -65,10 +46,9 @@ impl ESA {
         Ok(port)
     }
 
-    /**
-     Add start/ stop bits and checksum to given payload
-     @param payload     payload we want to send
-     */
+    /// Add start, stop and checksum bits to given payload.
+    /// payload:    payload we want to send.
+    /// return:     array with given payload extended with start, stop and checksum bits.
     fn form_command_data(payload: Vec<u8>) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         buf.push(85);
@@ -83,17 +63,31 @@ impl ESA {
         return buf;
     }
 
+    /// Write given data to port.
+    /// port:       port to write to.
+    /// data:       data to write.
+    /// return:     given port to use it again.
     fn write(mut port: SystemPort, data: Vec<u8>) -> SystemPort {
-        port.set_rts(false); // Disable RTS to send
-        port.write(&data); // Write data
+        // Disable RTS to send
+        port.set_rts(false);
+        // Write data
+        port.write(&data);
         return port;
     }
 
-    fn read(mut port: SystemPort) -> Option<Vec<u8>> {
+    /// Read from port.
+    /// port:       port to read from.
+    /// return:     tupel with
+    ///                 read data
+    ///                 given port to use it again.
+    fn read(mut port: SystemPort) -> (Vec<u8>, SystemPort) {
         let mut buf: Vec<u8> = Vec::new();
-        port.set_rts(true); // Enable RTS to send
-        port.read(&mut buf);
-        Some(buf)
+        // Enable RTS to send
+        port.set_rts(true);
+        let size = port.read_to_end(&mut buf);
+        println!("{:?} {:?}", size, buf);
+
+        return (buf, port);
     }
 
 
@@ -106,35 +100,42 @@ impl ESA {
     //     Ok(())
     // }
 
-    // Send paper move to serial device
-    // unsigned char time:    Time to move (0-255)
+    /// Send paper move command to ESA device.
+    /// port:       port to sent it to.
+    /// time:       time to move 0-255 (in tenths of a second).
+    /// return:     given port to use it again.
     fn perform_band(mut port: SystemPort, time: u8) -> SystemPort {
       let data = ESA::form_command_data(vec![23, time]);
       port = ESA::write(port, data);
-      // readFromHaering(fd, 17);
+      let (readResult, port) = ESA::read(port); //readFromHaering(fd, 17);
+      // TODO ckeck
       return port;
     }
 
 
 
-    // Send NOP to serial device
-    // output:     Recived bytes
+    /// Send NOP command to ESA device
+    /// port:       port to sent it to.
+    /// return:     given port to use it again.
     fn perform_nop(mut port: SystemPort) -> SystemPort {
         let data = ESA::form_command_data(vec![19, 0]);
         port = ESA::write(port, data);
-        // readFromHaering(fd, 17);
+        let (readResult, port) = ESA::read(port); // readFromHaering(fd, 17);
+        // TODO Read
         return port;
     }
 
 
 
-    // Send Config to serial device
-    // unsigned char time:   Time to move after each shot (0-255)
+    /// Send config to ESA device.
+    /// port:       port to sent it to.
+    /// time:       time to move after each shot 0-255 (in tenths of a second).
+    /// return:     given port to use it again.
     fn perform_set(mut port: SystemPort, time: u8) -> SystemPort {
       let data = ESA::form_command_data(vec![20, 5, 250, 20, time, 9, 13, 8, 79, 0, 0, 0, 0, 30, 220, 1, 144]);
-      port = ESA::write(port, data);
-      // writeToHaering(fd, seq, sizeof(seq));
-      // readFromHaering(fd, 0);
+      port = ESA::write(port, data); // writeToHaering(fd, seq, sizeof(seq));
+      let (readResult, port) = ESA::read(port); // readFromHaering(fd, 0);
+      // TODO Read
       return port;
     }
 
@@ -143,7 +144,7 @@ impl ESA {
 
 
 impl API for ESA {
-    fn start(&mut self, tx: mpsc::Sender<Action>, rx: mpsc::Receiver<Action>) {
+    fn start(&mut self, tx: mpsc::Sender<Action>, rx: mpsc::Receiver<DeviceCommand>) {
 
         // let rx = self.channel_rx;
         let serial_path = self.path.clone();
@@ -155,14 +156,14 @@ impl API for ESA {
                     loop {
                         match rx.try_recv() {
                             // Stop if we got a stop message or the channel disconnected
-                            Ok(Action::Stop) | Err(TryRecvError::Disconnected) => {
+                            Ok(DeviceCommand::Stop) | Err(TryRecvError::Disconnected) => {
                                 println!("Stopping DeviceAPI");
                                 break;
                             },
                             // When we got no message we generate a shot
                             Err(TryRecvError::Empty) => {
                                 port = ESA::perform_nop(port);
-                                thread::sleep(Duration::from_millis(250));
+                                thread::sleep(Duration::from_millis(1000));
                             }
                             _ => {},
                         }
@@ -174,14 +175,6 @@ impl API for ESA {
                 }
             }
         });
-
-
-    }
-
-
-
-
-    fn stop(&self) {
 
     }
 

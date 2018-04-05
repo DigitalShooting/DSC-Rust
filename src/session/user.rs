@@ -17,6 +17,14 @@ impl User {
             id: String::from(""),
         }
     }
+
+    pub fn guest() -> User {
+        User {
+            first_name: String::from("Guest"),
+            last_name: String::from(""),
+            id: String::from(""),
+        }
+    }
 }
 
 
