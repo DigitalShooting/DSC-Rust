@@ -1,2 +1,9 @@
 docker run -v $(pwd):/src -p 3009:3009 --name firebug_dsc_rust -it -w /src rust bash
 docker exec -it firebug_dsc_rust bash
+
+
+# read from serial
+cat /dev/pts/5 | hexdump -C
+
+# Create virtual serial port
+socat -d -d pty,raw,echo=0 pty,raw,echo=0

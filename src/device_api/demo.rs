@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use session::Shot;
 use helper;
-use api::{API, Action, DeviceCommand};
+use device_api::api::{API, Action, DeviceCommand};
 
 
 

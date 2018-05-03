@@ -1,7 +1,7 @@
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WebColor {
     pub hex: String,
     pub alpha: f32,
@@ -13,7 +13,7 @@ pub struct WebColor {
 // }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Discipline {
     pub id: String,
     pub title: String,
@@ -23,7 +23,7 @@ pub struct Discipline {
     pub parts: Vec<DisciplinePart>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Time {
     InstantStart { duration: i32 },
@@ -32,7 +32,7 @@ pub enum Time {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Target {
     pub title: String,
     pub rings: Vec<Ring>,
@@ -47,7 +47,7 @@ pub struct Target {
 
 pub type Zoom = f32;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Ring {
     pub value: i32,
     pub width:  f64,
@@ -58,7 +58,7 @@ pub struct Ring {
     pub hit_color: WebColor,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DisciplinePart {
     pub id: String,
     pub name: String,
@@ -74,20 +74,20 @@ pub struct DisciplinePart {
     pub exit_type: PartExitType,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PartCountMode {
     Integer,
     Tenth,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum PartAverage {
     Average { number_of_shots: i32 },
     None,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PartExitType {
     Always,
     BeforeFirst,

@@ -33,6 +33,15 @@ pub enum Event {
     SetSessionIndex(i32),
 }
 
+/// Indicated the current state of the current shot provider
+enum ShotProviderState {
+    /// We have a running shot provider
+    Running(mpsc::Sender<DeviceCommand>),
+
+    /// We have no running shot provider
+    NotRunning,
+}
+
 
 
 pub struct DSCManager {
@@ -51,7 +60,7 @@ pub struct DSCManager {
     get_from_device_tx: mpsc::Sender<Action>,
     get_from_device_rx: mpsc::Receiver<Action>,
 
-    set_to_device_tx: Option<mpsc::Sender<DeviceCommand>>,
+    shot_provider_state: ShotProviderState,
 }
 
 impl DSCManager {
@@ -66,7 +75,7 @@ impl DSCManager {
             on_update_tx,
             set_event_tx, set_event_rx,
             get_from_device_tx, get_from_device_rx,
-            set_to_device_tx: None,
+            shot_provider_state: ShotProviderState::NotRunning,
         }
     }
 
@@ -98,8 +107,7 @@ impl DSCManager {
 
                     },
                     Event::SetDisciplin(discipline) => {
-                        self.stop_shot_provider();
-                        self.start_shot_provider(&discipline);
+                        self.start_shot_provider(discipline.clone());
                         self.session = Session::new(discipline);
                     },
                     Event::SetUser(user) => {
@@ -132,32 +140,35 @@ impl DSCManager {
     }
 
 
-    // Trait shot_sprovider_control
-    pub fn start_shot_provider(&mut self, discipline: &Discipline) {
+    /// Start given shot provider, if we still have a running one, we stop it.
+    pub fn start_shot_provider(&mut self, discipline: Discipline) {
+        self.stop_shot_provider();
+
         println!("Starting Shot Provider");
 
         // TODO get from device config
-        let mut shot_provider = device_api::Demo::new();
-        // let mut shot_provider = device_api::ESA::new("/dev/ttyUSB0".to_string());
-
+        // let mut shot_provider = device_api::Demo::new();
+        let mut shot_provider = device_api::ESA::new("/dev/ttyS0".to_string(), discipline);
+        // let mut shot_provider = device_api::ESA::new("/dev/pts/3".to_string());
 
         // With this channel we can set stuff to the shot_provider
         // used to stop the device or trigger manual update (paper move, etc.)
         let (set_to_device_tx, set_to_device_rx) = mpsc::channel::<DeviceCommand>();
-        self.set_to_device_tx = Some(set_to_device_tx);
+        self.shot_provider_state = ShotProviderState::Running(set_to_device_tx);
 
         shot_provider.start(self.get_from_device_tx.clone(), set_to_device_rx);
     }
 
-    // stop shot provider
+    /// Stop the current shot provider, if any
     fn stop_shot_provider(&mut self) {
-        println!("Stopping Shot Provider");
-        match self.set_to_device_tx {
-            Some(ref mut tx) => {
+        match self.shot_provider_state {
+            ShotProviderState::Running(ref mut tx) => {
+                println!("Stopping Shot Provider");
                 tx.send(DeviceCommand::Stop);
             },
-            None => {},
+            ShotProviderState::NotRunning => {},
         }
+        self.shot_provider_state = ShotProviderState::NotRunning;
     }
 
 

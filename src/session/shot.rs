@@ -94,7 +94,7 @@ impl Shot {
 
 #[cfg(test)]
 mod test {
-    use shot::*;
+    use session::shot::*;
     use discipline::*;
     use helper;
 

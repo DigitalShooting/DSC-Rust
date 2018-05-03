@@ -1,7 +1,7 @@
 
 
-use shot::*;
-use user::*;
+use session::shot::*;
+use session::user::*;
 use discipline::*;
 
 
@@ -180,8 +180,8 @@ impl AddShot for Series {
 
 #[cfg(test)]
 mod test {
-    use shot::*;
-    use session::*;
+    use session::shot::*;
+    use session::session::*;
     use discipline::*;
     use helper;
 
@@ -191,11 +191,11 @@ mod test {
         let discipline = helper::dsc_demo::lg_discipline();
         let shot = Shot::from_cartesian_coordinates (0, 0, &target);
 
-        let mut session = Session::new();
+        let mut session = Session::new(discipline);
         assert_eq!(1, session.parts.len());
         assert_eq!(0, session.active_session);
 
-        session.add_shot(shot, &discipline);
+        session.add_shot(shot);
     }
 
 }
