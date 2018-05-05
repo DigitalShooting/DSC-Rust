@@ -1,7 +1,6 @@
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
-use std::io;
 use std::error::Error;
 use std::io::prelude::*;
 
@@ -11,9 +10,8 @@ use byteorder::{BigEndian, ReadBytesExt};
 use discipline::*;
 use session::Shot;
 use device_api::api::{API, Action, DeviceCommand};
-use helper;
 
-use std::io::BufReader;
+// use std::io::BufReader;
 
 /// We use some c functions to comunicate with the ESA interface, using rust crates just did not
 /// work. I just could not read data from the device.
@@ -51,7 +49,7 @@ enum NopResult {
 }
 
 // Time interval (ms) in which we search for new shots
-const ESA_FETCH_INTERVAL: u64 = 200;
+const ESA_FETCH_INTERVAL: u64 = 1000;
 
 
 /// DeviceAPI for Haering ESA.
@@ -69,6 +67,7 @@ impl ESA {
     }
 
     /// Configure serial port to requied parameters
+    /// path:   Path to the serial port device
     fn serial_open(path: String) -> Result<i32, SerialError> {
         // let port = b"/dev/ttyS0\0";
         // let path = path.push("\0");
@@ -79,39 +78,17 @@ impl ESA {
         return Result::Ok(port);
     }
 
+    /// Close given serial port
+    /// port:   Serial Port desciptor
     fn serial_close(port: SerialPort) {
         unsafe { serialClose(port) };
-    }
-
-
-    fn calculate_checksum(data: Vec<u8>) -> u8 {
-        let mut checksum: u8 = 0;
-        for x in &data {
-            checksum ^= x;
-        }
-        return checksum;
-    }
-
-
-    /// Add start, stop and checksum bits to given payload.
-    /// payload:    payload we want to send.
-    /// return:     array with given payload extended with start, stop and checksum bits.
-    fn form_command_data(payload: Vec<u8>) -> Vec<u8> {
-        let mut buf: Vec<u8> = Vec::new();
-        buf.push(85);
-        buf.push(1);
-        buf.extend(payload);
-        let checksum = ESA::calculate_checksum(buf.clone());
-        buf.push(checksum);
-        buf.push(170);
-        return buf;
     }
 
     /// Write given data to port.
     /// port:       port to write to.
     /// data:       data to write.
     /// return:     given port to use it again.
-    fn write(mut port: SerialPort, data: Vec<u8>) {
+    fn write(port: SerialPort, data: Vec<u8>) {
         unsafe {
             serialWrite(port, data.as_ptr(), data.len());
         }
@@ -125,12 +102,13 @@ impl ESA {
     // TODO use Result as return/ err invalid checksum/ data
     fn read(port: SerialPort) -> Result<Vec<u8>, DataError> {
         const MAX_LEN: usize = 50;
-        let mut raw: [u8; MAX_LEN] = [0; MAX_LEN];
-        let mut read_len: usize = 0;
+        let raw: [u8; MAX_LEN] = [0; MAX_LEN];
+        let mut read_len: usize;
         unsafe {
             read_len = serialRead(port, raw.as_ptr(), MAX_LEN);
         };
 
+        println!("{} {:?}", read_len, raw.to_vec());
         let mut payload: Vec<u8> = Vec::new();
         for i in 0..read_len {
 
@@ -172,11 +150,39 @@ impl ESA {
 
 
 
+    /// Calculate xor checksum over given data array
+    /// data:   Data to xor
+    /// return: checksum byte
+    fn calculate_checksum(data: Vec<u8>) -> u8 {
+        let mut checksum: u8 = 0;
+        for x in &data {
+            checksum ^= x;
+        }
+        return checksum;
+    }
+
+
+
+    /// Add start, stop and checksum bits to given payload.
+    /// payload:    payload we want to send.
+    /// return:     array with given payload extended with start, stop and checksum bits.
+    fn form_command_data(payload: Vec<u8>) -> Vec<u8> {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.push(85);
+        buf.push(1);
+        buf.extend(payload);
+        let checksum = ESA::calculate_checksum(buf.clone());
+        buf.push(checksum);
+        buf.push(170);
+        return buf;
+    }
+
+
+
     /// Send paper move command to ESA device.
     /// port:       port to sent it to.
     /// time:       time to move 0-255 (in tenths of a second).
-    /// return:     given port to use it again.
-    fn perform_band(mut port: SerialPort, time: u8) {
+    fn perform_band(port: SerialPort, time: u8) {
       let data = ESA::form_command_data(vec![23, time]);
       println!("perform_band");
       ESA::write(port, data);
@@ -198,19 +204,14 @@ impl ESA {
       }
     }
 
-
-
     /// Send NOP command to ESA device
     /// port:       port to sent it to.
-    /// return:     given port to use it again.
+    /// return:     NopResult (Shot, Nop, Error)
     fn perform_nop(port: SerialPort, target: &Target) -> NopResult {
         println!("perform_nop");
 
         let data = ESA::form_command_data(vec![0]);
         ESA::write(port, data);
-
-        let mut arr = ESA::read(port);
-        println!("{:?}", arr);
 
         match ESA::read(port) {
             Ok(payload) => {
@@ -222,10 +223,10 @@ impl ESA {
                     13 if payload[0] == 0x1D => {
                         // Trefferdaten (AuTa sendet registrierte Trefferkoordinaten)
                         let mut cursor = Cursor::new(payload);
-                        let time = cursor.read_i32::<BigEndian>().unwrap();
+                        let _ = cursor.read_u8().unwrap();
+                        let _time = cursor.read_u32::<BigEndian>().unwrap();
                         let x = cursor.read_i32::<BigEndian>().unwrap();
                         let y = cursor.read_i32::<BigEndian>().unwrap();
-                        println!("Got Data {} {} {}", time, x, y);
 
                         let shot = Shot::from_cartesian_coordinates(x, y, target);
                         return NopResult::Shot(shot);
@@ -243,12 +244,9 @@ impl ESA {
         }
     }
 
-
-
     /// Send config to ESA device.
     /// port:       port to sent it to.
     /// time:       time to move after each shot 0-255 (in tenths of a second).
-    /// return:     given port to use it again.
     fn perform_set(port: SerialPort, time: u8) {
         println!("perform_set");
 
@@ -289,9 +287,11 @@ impl API for ESA {
             thread::sleep(Duration::from_millis(ESA_FETCH_INTERVAL*2));
 
             match ESA::serial_open(serial_path) {
-                Ok(mut port) => {
+                Ok(port) => {
                     ESA::perform_set(port, 1_u8); // Todo from discipline
+                    // thread::sleep(Duration::from_millis(100));
                     ESA::perform_band(port, 1_u8); // Todo from discipline
+                    // thread::sleep(Duration::from_millis(100));
 
                     loop {
                         match rx.try_recv() {
@@ -306,6 +306,7 @@ impl API for ESA {
                                 match ESA::perform_nop(port, &target) {
                                     NopResult::Shot(shot) => {
                                         println!("New Shot {:?}", shot);
+                                        tx.send(Action::NewShot(shot));
                                     }
                                     NopResult::Ack => {
 
@@ -322,6 +323,7 @@ impl API for ESA {
                     }
                 },
                 Err(err) => {
+
                     println!("init error {:?}", err);
                     // tx.send(Action:Error("err".to_string()));
                 }
@@ -343,7 +345,24 @@ impl API for ESA {
 
 #[cfg(test)]
 mod test {
-    use esa::*;
+    use device_api::esa::*;
+
+    #[test]
+    fn test_calculate_checksum() {
+        let checksum1 = ESA::calculate_checksum(vec![0x01, 0x02]);
+        assert_eq!(0x03, checksum1);
+
+        let checksum2 = ESA::calculate_checksum(vec![]);
+        assert_eq!(0x00, checksum2);
+
+        let checksum3 = ESA::calculate_checksum(vec![0x00, 0x00, 0xF0]);
+        assert_eq!(0xF0, checksum3);
+
+        let checksum4 = ESA::calculate_checksum(vec![0x01, 0x01, 0x02]);
+        assert_eq!(0x02, checksum4);
+    }
+
+
 
     #[test]
     fn test_form_command_data_band() {

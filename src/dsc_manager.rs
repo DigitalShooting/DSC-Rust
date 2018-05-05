@@ -1,8 +1,8 @@
 use std::sync::{mpsc};
 use std::thread;
-// use std::sync::mpsc::channel;
+use std::marker::Sync;
 use std::time::Duration;
-// use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 
 use helper;
 
@@ -14,15 +14,16 @@ use device_api::api::{API, Action, DeviceCommand};
 use serde_json;
 
 
+pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
+pub type DSCManagerThread = thread::JoinHandle<()>;
 
-
-// Used to send status updates from the manager to the client (socket api)
+/// Used to send status updates from the manager to the client (socket api)
 pub enum Update { // EventResponse?
     Data(String),
     Error(String),
 }
 
-// Used to send status updates from the manager to the client (socket api)
+/// Used to send status updates from the manager to the client (socket api)
 pub enum Event {
     NewTarget,
     SetDisciplin(Discipline),
@@ -48,12 +49,7 @@ pub struct DSCManager {
     pub session: Session,
 
     // Channel for sending changes to the socket api
-    on_update_tx: mpsc::Sender<Update>,
-    // pub on_update_rx: mpsc::Receiver<Update>,
-
-    // This is a channel to send to the current shot provider
-    pub set_event_tx: mpsc::Sender<Event>,
-    set_event_rx: mpsc::Receiver<Event>,
+    pub on_update_tx: Option<mpsc::Sender<Update>>,
 
     // The shot_provider writes to this channel, we read it here
     // used for new shot, error form device, etc
@@ -64,91 +60,124 @@ pub struct DSCManager {
 }
 
 impl DSCManager {
-    pub fn new_with_default(on_update_tx: mpsc::Sender<Update>) -> DSCManager {
+    pub fn new_with_default() -> (DSCManagerMutex, DSCManagerThread) {
         let discipline = helper::dsc_demo::lg_discipline();
         let session = Session::new(discipline);
 
         let (get_from_device_tx, get_from_device_rx) = mpsc::channel::<Action>();
-        let (set_event_tx, set_event_rx) = mpsc::channel::<Event>();
-        return DSCManager {
+        let manager = DSCManager {
             session,
-            on_update_tx,
-            set_event_tx, set_event_rx,
+            on_update_tx: None,
             get_from_device_tx, get_from_device_rx,
             shot_provider_state: ShotProviderState::NotRunning,
-        }
+        };
+
+        let manager_mutex = Arc::new(Mutex::new(manager));
+        let thread = DSCManager::start(manager_mutex.clone());
+        return (manager_mutex, thread);
     }
+
+
 
     // send current session data as json to the client (socket)
     fn update_sessions(&mut self) {
-        let text = serde_json::to_string(&self.session).unwrap();
-        self.on_update_tx.send(Update::Data(text)).unwrap()
+        if let Some(ref on_update_tx) = self.on_update_tx {
+            match serde_json::to_string(&self.session) {
+                Ok(text) => {
+                    match on_update_tx.send(Update::Data(text)) {
+                        Ok(_) => {},
+                        Err(err) => println!("{}", err),
+                    }
+                }
+                Err(err) => println!("{}", err),
+            }
+        }
     }
 
-    // main run loop for manager
-    pub fn start(&mut self) {
-        loop {
-            if let Ok(message) = self.get_from_device_rx.try_recv() {
-                match message {
-                    Action::NewShot(shot) => {
-                        self.session.add_shot(shot);
-                        self.update_sessions();
-                    },
-                    Action::Error(err) => {
-                        println!("Error {:?}", err);
-                    },
-                    _ => {},
-                }
-            }
-
-            if let Ok(message) = self.set_event_rx.try_recv() {
-                match message {
-                    Event::NewTarget => {
-
-                    },
-                    Event::SetDisciplin(discipline) => {
-                        self.start_shot_provider(discipline.clone());
-                        self.session = Session::new(discipline);
-                    },
-                    Event::SetUser(user) => {
-                        println!("Set User {:?}", user);
-                        self.session.user = user;
-                        self.update_sessions();
-                    },
-
-                    Event::SetTeam(team) => {
-                        self.session.team = team;
-                        self.update_sessions();
-                    },
-                    Event::SetClub(club) => {
-                        self.session.club = club;
-                        self.update_sessions();
-                    },
-                    Event::SetPart(part_type) => {
-                        println!("{}", part_type);
-                        // TODO!!!
-                    },
-                    Event::SetSessionIndex(index) => {
-                        println!("{}", index);
-                        // TODO!!!
-                    },
-                }
-            }
-
-            thread::sleep(Duration::from_millis(100));
+    /// Start the manager thread and return its JoinHandle
+    /// manager_mutex:  DSCMangerMutex, will be locked befor every access in the run loop
+    pub fn start(manager_mutex: DSCManagerMutex) -> DSCManagerThread {
+        match manager_mutex.lock() {
+            Ok(mut manager) => {
+                let discipline = manager.session.discipline.clone();
+                manager.start_shot_provider(discipline);
+            },
+            Err(err) => println!("Error {:?}", err),
         }
+        return thread::spawn(move || {
+            loop {
+                match manager_mutex.lock() {
+                    Ok(mut manager) => {
+                        if let Ok(message) = manager.get_from_device_rx.try_recv() {
+                            match message {
+                                Action::NewShot(shot) => {
+                                    manager.session.add_shot(shot);
+                                    manager.update_sessions();
+                                },
+                                Action::Error(err) => {
+                                    println!("Error {:?}", err);
+                                },
+                            }
+                        }
+
+                        // if let Ok(message) = manager.set_event_rx.try_recv() {
+                        //     match message {
+                        //         Event::NewTarget => {
+                        //
+                        //         },
+                        //         Event::SetDisciplin(discipline) => {
+                        //             manager.set_disciplin(discipline);
+                        //         },
+                        //         Event::SetUser(user) => {
+                        //             println!("Set User {:?}", user);
+                        //             manager.session.user = user;
+                        //             manager.update_sessions();
+                        //         },
+                        //         Event::SetTeam(team) => {
+                        //             manager.session.team = team;
+                        //             manager.update_sessions();
+                        //         },
+                        //         Event::SetClub(club) => {
+                        //             manager.session.club = club;
+                        //             manager.update_sessions();
+                        //         },
+                        //         Event::SetPart(part_type) => {
+                        //             println!("{}", part_type);
+                        //             // TODO!!!
+                        //         },
+                        //         Event::SetSessionIndex(index) => {
+                        //             println!("{}", index);
+                        //             // TODO!!!
+                        //         },
+                        //     }
+                        // }
+                    }
+                    Err(err) => println!("Error {:?}", err),
+                }
+
+                thread::sleep(Duration::from_millis(100));
+            }
+        });
+    }
+
+    pub fn new_target(&mut self) {
+        println!("new_target");
+    }
+    pub fn set_disciplin(&mut self, discipline: Discipline) {
+        self.start_shot_provider(discipline.clone());
+        self.session = Session::new(discipline);
     }
 
 
     /// Start given shot provider, if we still have a running one, we stop it.
-    pub fn start_shot_provider(&mut self, discipline: Discipline) {
+    fn start_shot_provider(&mut self, discipline: Discipline) {
         self.stop_shot_provider();
 
         println!("Starting Shot Provider");
 
         // TODO get from device config
-        // let mut shot_provider = device_api::Demo::new();
-        let mut shot_provider = device_api::ESA::new("/dev/ttyS0".to_string(), discipline);
+        let mut shot_provider = device_api::Demo::new();
+        // let mut shot_provider = device_api::ESA::new("/dev/ttyS0".to_string(), discipline);
         // let mut shot_provider = device_api::ESA::new("/dev/pts/3".to_string());
 
         // With this channel we can set stuff to the shot_provider

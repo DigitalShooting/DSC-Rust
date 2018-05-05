@@ -16,6 +16,7 @@ use device_api::api::{Action};
 use helper;
 
 
+type ClientSenders = Arc<Mutex<Vec<mpsc::Sender<String>>>>;
 
 pub struct Config {
     pub address_port: String,
@@ -31,7 +32,7 @@ pub enum RequestType {
 
 
 
-pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on_update_rx: mpsc::Receiver<Update>) {
+pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
     println!("[web::socket][start_websocket] start on: {}", config.address_port);
 
     let server;
@@ -43,38 +44,16 @@ pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on
         },
     }
 
-    let client_senders: Arc<Mutex<Vec<mpsc::Sender<String>>>> = Arc::new(Mutex::new(vec![]));
+    let client_senders: ClientSenders = Arc::new(Mutex::new(vec![]));
+
+
 
     // dispatcher thread
-    {
-        let client_senders = client_senders.clone();
-        thread::spawn(move || {
-            while let Ok(msg) = on_update_rx.recv() {
-                match msg {
-                    Update::Data(string) => {
-                        match client_senders.lock() {
-                            Ok(senders) => {
-                                for sender in senders.iter() {
-                                    match sender.send(string.clone()) {
-                                        Result::Ok(_) => {},
-                                        Result::Err(err) => {
-                                            println!("{:?}", err);
-                                            return;
-                                        },
-                                    };
-                                }
-                            },
-                            Err(err) => {
-                                println!("{:?}", err);
-                                return;
-                            },
-                        }
-                    },
-                    Update::Error(err) => println!("{:?}", err),
-                }
-            }
-        });
-    }
+    start_bradcast_thread(client_senders.clone(), manager.clone());
+
+
+
+
 
     // client threads
     for request in server.filter_map(Result::ok) {
@@ -89,7 +68,7 @@ pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on
         };
 
         // Spawn a new thread for each connection.
-        let set_event_tx_copy = set_event_tx.clone();
+        let manager_clone = manager.clone();
         thread::spawn(move || {
             if !request.protocols().contains(&"rust-websocket".to_string()) {
                 match request.reject() {
@@ -109,15 +88,26 @@ pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on
             println!("Connection from {}", ip);
 
 
-            let message = OwnedMessage::Text("SERVER: Connected.".to_string());
-            match client.send_message(&message) {
-                Ok(_) => {},
-                Err(err) => {
-                    println!("{:?}", err);
-                },
-            };
+
+            // Send current session on connect
+            match manager_clone.lock() {
+                Ok(mut manager) => {
+                    let text = serde_json::to_string(&manager.session).unwrap();
+                    let message = OwnedMessage::Text(text);
+                    match client.send_message(&message) {
+                        Ok(_) => {},
+                        Err(err) => println!("{:?}", err),
+                    };
+                }
+                Err(err) => print!("{:?}", err),
+            }
+
+
 
             if let Ok((mut receiver, mut sender)) = client.split() {
+
+                // Spawn custom thread for reading incoming_message from the client
+                // all messages are forwarded to the rx channel
                 let(tx, rx) = mpsc::channel::<OwnedMessage>();
                 thread::spawn(move || {
                     for incoming_message in receiver.incoming_messages() {
@@ -151,14 +141,21 @@ pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on
                                         match request_type {
                                             RequestType::NewTarget => {
                                                 println!("RequestType::NewTarget");
-                                                let _ = set_event_tx_copy.send(Event::NewTarget);
+
+                                                match manager_clone.lock() {
+                                                    Ok(mut manager) => manager.new_target(),
+                                                    Err(err) => print!("{:?}", err),
+                                                }
                                             },
                                             RequestType::SetDisciplin{ name } => {
 
                                                 // TODO get disziplin by name
                                                 let discipline = helper::dsc_demo::lg_discipline();
 
-                                                let _ = set_event_tx_copy.send(Event::SetDisciplin(discipline));
+                                                match manager_clone.lock() {
+                                                    Ok(mut manager) => manager.set_disciplin(discipline),
+                                                    Err(err) => print!("{:?}", err),
+                                                }
                                             },
                                             RequestType::Shutdown => {
                                                 println!("Not Implemented");
@@ -172,16 +169,62 @@ pub fn start_websocket<'a>(config: Config, set_event_tx: mpsc::Sender<Event>, on
                             _ => {},
                         }
                     }
+
+                    // Send messages we got from client_senders
                     if let Ok(message) = client_rx.try_recv() {
                         let message = OwnedMessage::Text(message);
                         sender.send_message(&message).unwrap_or(());
                     }
+
                     thread::sleep(Duration::from_millis(100));
                 }
             }
         });
     }
+    println!("end socker");
 }
+
+
+
+
+
+fn start_bradcast_thread(client_senders: ClientSenders, manager: DSCManagerMutex) {
+    match manager.lock() {
+        Ok(mut manager) => {
+            let (on_update_tx, on_update_rx) = mpsc::channel::<Update>();
+            manager.on_update_tx = Some(on_update_tx);
+            thread::spawn(move || {
+                loop {
+                    if let Ok(msg) = on_update_rx.try_recv() {
+                        match msg {
+                            Update::Data(string) => {
+                                match client_senders.lock() {
+                                    Ok(senders) => {
+                                        for sender in senders.iter() {
+                                            match sender.send(string.clone()) {
+                                                Result::Ok(_) => {},
+                                                Result::Err(err) => {
+                                                    println!("send to client: {}", err);
+                                                    // TODO clean up closed senders
+                                                    continue;
+                                                },
+                                            };
+                                        }
+                                    },
+                                    Err(err) => println!("client_senders lock: {}", err),
+                                }
+                            },
+                            Update::Error(err) => println!("{}", err),
+                        }
+                    }
+                    thread::sleep(Duration::from_millis(500));
+                }
+            });
+        }
+        Err(err) => println!("{}", err),
+    }
+}
+
 
 
 

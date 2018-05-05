@@ -29,6 +29,7 @@ mod web;
 // use std::time::Duration;
 
 
+use std::sync::{Arc, Mutex};
 /*
 // use std::sync::{Arc, Mutex, mpsc};
 
@@ -58,28 +59,15 @@ fn start_dsc() {
     use dsc_manager::*;
     use web::*;
 
-    // Init manager and Update channel
-    let (on_update_tx, on_update_rx) = mpsc::channel::<Update>();
-    let mut manager = DSCManager::new_with_default(on_update_tx);
+    // Init manager
+    let (mut manager, manager_thread) = DSCManager::new_with_default();
 
-    // This channel can be used to update the state of the manager
-    let set_event_tx = manager.set_event_tx.clone();
-
-    // Init default discipline and send it to the manager
-    // TODO get from config
-    let discipline = helper::dsc_demo::lg_discipline();
-    set_event_tx.send(Event::SetDisciplin(discipline));
-
-    // Spawn a thread for the manager run loop and start it
-    let manager_thread = thread::spawn(move || {
-        manager.start();
-    });
 
     // Start websocket server
     let config = socket::Config {
-        address_port: "0.0.0.0:3009".to_string()
+        address_port: "0.0.0.0:3008".to_string()
     };
-    // socket::start_websocket(config, set_event_tx, on_update_rx);
+    socket::start_websocket(config, manager);
 
     // Run until manager (and socket?! TODO) finishes
     manager_thread.join().unwrap();
