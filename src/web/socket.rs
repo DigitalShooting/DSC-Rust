@@ -58,14 +58,7 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
     // client threads
     for request in server.filter_map(Result::ok) {
         let (client_tx, client_rx) = mpsc::channel();
-
-        match client_senders.lock() {
-            Ok(mut senders) => senders.push(client_tx),
-            Err(err) => {
-                println!("{:?}", err);
-                return;
-            },
-        };
+        client_senders.lock().unwrap().push(client_tx);
 
         // Spawn a new thread for each connection.
         let manager_clone = manager.clone();
@@ -90,17 +83,12 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
 
 
             // Send current session on connect
-            match manager_clone.lock() {
-                Ok(mut manager) => {
-                    let text = serde_json::to_string(&manager.session).unwrap();
-                    let message = OwnedMessage::Text(text);
-                    match client.send_message(&message) {
-                        Ok(_) => {},
-                        Err(err) => println!("{:?}", err),
-                    };
-                }
-                Err(err) => print!("{:?}", err),
-            }
+            let text = serde_json::to_string(&manager_clone.lock().unwrap().session).unwrap();
+            let message = OwnedMessage::Text(text);
+            match client.send_message(&message) {
+                Ok(_) => {},
+                Err(err) => println!("{:?}", err),
+            };
 
 
 
@@ -141,27 +129,17 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
                                         match request_type {
                                             RequestType::NewTarget => {
                                                 println!("RequestType::NewTarget");
-
-                                                match manager_clone.lock() {
-                                                    Ok(mut manager) => manager.new_target(),
-                                                    Err(err) => print!("{:?}", err),
-                                                }
+                                                manager_clone.lock().unwrap().new_target();
                                             },
                                             RequestType::SetDisciplin{ name } => {
-
                                                 // TODO get disziplin by name
                                                 let discipline = helper::dsc_demo::lg_discipline();
-
-                                                match manager_clone.lock() {
-                                                    Ok(mut manager) => manager.set_disciplin(discipline),
-                                                    Err(err) => print!("{:?}", err),
-                                                }
+                                                manager_clone.lock().unwrap().set_disciplin(discipline);
                                             },
                                             RequestType::Shutdown => {
                                                 println!("Not Implemented");
                                             },
                                         };
-
                                     },
                                     Err(err) => println!("Parsing Error {:?}", err),
                                 }
@@ -187,42 +165,35 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
 
 
 
-
+/// Creates a Update channel and sets it in the dscmanager. Then we start a thread which checks
+/// this channel for update and sends them to each connected socket client.
+/// client_senders:     List of clients
+/// manager:            DSCManager, to set update channel
 fn start_bradcast_thread(client_senders: ClientSenders, manager: DSCManagerMutex) {
-    match manager.lock() {
-        Ok(mut manager) => {
-            let (on_update_tx, on_update_rx) = mpsc::channel::<Update>();
-            manager.on_update_tx = Some(on_update_tx);
-            thread::spawn(move || {
-                loop {
-                    if let Ok(msg) = on_update_rx.try_recv() {
-                        match msg {
-                            Update::Data(string) => {
-                                match client_senders.lock() {
-                                    Ok(senders) => {
-                                        for sender in senders.iter() {
-                                            match sender.send(string.clone()) {
-                                                Result::Ok(_) => {},
-                                                Result::Err(err) => {
-                                                    println!("send to client: {}", err);
-                                                    // TODO clean up closed senders
-                                                    continue;
-                                                },
-                                            };
-                                        }
-                                    },
-                                    Err(err) => println!("client_senders lock: {}", err),
-                                }
-                            },
-                            Update::Error(err) => println!("{}", err),
+    let (on_update_tx, on_update_rx) = mpsc::channel::<Update>();
+    manager.lock().unwrap().on_update_tx = Some(on_update_tx);
+    thread::spawn(move || {
+        loop {
+            if let Ok(msg) = on_update_rx.try_recv() {
+                match msg {
+                    Update::Data(string) => {
+                        for sender in client_senders.lock().unwrap().iter() {
+                            match sender.send(string.clone()) {
+                                Result::Ok(_) => {},
+                                Result::Err(err) => {
+                                    println!("send to client: {}", err);
+                                    // TODO clean up closed senders
+                                    continue;
+                                },
+                            };
                         }
-                    }
-                    thread::sleep(Duration::from_millis(500));
+                    },
+                    Update::Error(err) => println!("{}", err),
                 }
-            });
+            }
+            thread::sleep(Duration::from_millis(100));
         }
-        Err(err) => println!("{}", err),
-    }
+    });
 }
 
 

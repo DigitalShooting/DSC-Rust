@@ -17,21 +17,11 @@ use serde_json;
 pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
 pub type DSCManagerThread = thread::JoinHandle<()>;
 
+
 /// Used to send status updates from the manager to the client (socket api)
 pub enum Update { // EventResponse?
     Data(String),
     Error(String),
-}
-
-/// Used to send status updates from the manager to the client (socket api)
-pub enum Event {
-    NewTarget,
-    SetDisciplin(Discipline),
-    SetUser(User),
-    SetTeam(Team),
-    SetClub(Club),
-    SetPart(PartType),
-    SetSessionIndex(i32),
 }
 
 /// Indicated the current state of the current shot provider
@@ -44,7 +34,10 @@ enum ShotProviderState {
 }
 
 
-
+/// DSCManager contains the current session and sets up the shot provider for the current
+/// discipline. Events for the websockets are send by a channel, which will be created from the
+/// websocket site. The communication between a shot provider and the mananger also happens over
+/// channels.
 pub struct DSCManager {
     pub session: Session,
 
@@ -97,68 +90,30 @@ impl DSCManager {
     /// Start the manager thread and return its JoinHandle
     /// manager_mutex:  DSCMangerMutex, will be locked befor every access in the run loop
     pub fn start(manager_mutex: DSCManagerMutex) -> DSCManagerThread {
-        match manager_mutex.lock() {
-            Ok(mut manager) => {
-                let discipline = manager.session.discipline.clone();
-                manager.start_shot_provider(discipline);
-            },
-            Err(err) => println!("Error {:?}", err),
-        }
+        let discipline = manager_mutex.lock().unwrap().session.discipline.clone();
+        manager_mutex.lock().unwrap().start_shot_provider(discipline);
         return thread::spawn(move || {
             loop {
-                match manager_mutex.lock() {
-                    Ok(mut manager) => {
-                        if let Ok(message) = manager.get_from_device_rx.try_recv() {
-                            match message {
-                                Action::NewShot(shot) => {
-                                    manager.session.add_shot(shot);
-                                    manager.update_sessions();
-                                },
-                                Action::Error(err) => {
-                                    println!("Error {:?}", err);
-                                },
-                            }
-                        }
-
-                        // if let Ok(message) = manager.set_event_rx.try_recv() {
-                        //     match message {
-                        //         Event::NewTarget => {
-                        //
-                        //         },
-                        //         Event::SetDisciplin(discipline) => {
-                        //             manager.set_disciplin(discipline);
-                        //         },
-                        //         Event::SetUser(user) => {
-                        //             println!("Set User {:?}", user);
-                        //             manager.session.user = user;
-                        //             manager.update_sessions();
-                        //         },
-                        //         Event::SetTeam(team) => {
-                        //             manager.session.team = team;
-                        //             manager.update_sessions();
-                        //         },
-                        //         Event::SetClub(club) => {
-                        //             manager.session.club = club;
-                        //             manager.update_sessions();
-                        //         },
-                        //         Event::SetPart(part_type) => {
-                        //             println!("{}", part_type);
-                        //             // TODO!!!
-                        //         },
-                        //         Event::SetSessionIndex(index) => {
-                        //             println!("{}", index);
-                        //             // TODO!!!
-                        //         },
-                        //     }
-                        // }
+                let mut manager = manager_mutex.lock().unwrap();
+                if let Ok(message) = manager.get_from_device_rx.try_recv() {
+                    match message {
+                        Action::NewShot(shot) => {
+                            manager.session.add_shot(shot);
+                            manager.update_sessions();
+                        },
+                        Action::Error(err) => {
+                            println!("Error {:?}", err);
+                        },
                     }
-                    Err(err) => println!("Error {:?}", err),
                 }
 
                 thread::sleep(Duration::from_millis(100));
             }
+            println!("end");
         });
     }
+
+
 
     pub fn new_target(&mut self) {
         println!("new_target");
@@ -167,6 +122,28 @@ impl DSCManager {
         self.start_shot_provider(discipline.clone());
         self.session = Session::new(discipline);
     }
+    pub fn set_user(&mut self, user: User) {
+        self.session.user = user;
+        self.update_sessions();
+    }
+    pub fn set_team(&mut self, team: Team) {
+        self.session.team = team;
+        self.update_sessions();
+    }
+    pub fn set_club(&mut self, club: Club) {
+        self.session.club = club;
+        self.update_sessions();
+    }
+    pub fn set_part(&mut self, part: PartType) {
+
+    }
+    pub fn set_active_session(&mut self, index: ActiveSession) {
+
+    }
+
+
+
+
 
 
     /// Start given shot provider, if we still have a running one, we stop it.

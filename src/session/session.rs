@@ -8,6 +8,7 @@ use discipline::*;
 
 
 
+pub type ActiveSession = usize;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
@@ -16,7 +17,7 @@ pub struct Session {
     pub user: User,
     pub club: Club,
     pub team: Team,
-    active_session: usize,
+    active_session: ActiveSession,
     sum: f64,
 }
 
