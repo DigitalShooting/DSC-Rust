@@ -1,6 +1,6 @@
 use std::sync::{mpsc};
 
-use session::Shot;
+use session::ShotRaw;
 
 
 
@@ -17,7 +17,7 @@ pub enum DeviceCommand {
 /// Communication channel to Manager object, to inform about new shots and errors.
 pub enum Action {
     /// Send new detected shot to the Manger
-    NewShot(Shot),
+    NewShot(ShotRaw),
 
     /// Send an error event that occured in the DeviceAPI to the Manager
     Error(String),

@@ -1,4 +1,4 @@
-use websocket;
+// use websocket;
 use websocket::OwnedMessage;
 use websocket::sync::Server;
 
@@ -11,7 +11,6 @@ use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 use std::time::Duration;
 
 use dsc_manager::*;
-use device_api::api::{Action};
 
 use helper;
 
@@ -49,7 +48,7 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
 
 
     // dispatcher thread
-    start_bradcast_thread(client_senders.clone(), manager.clone());
+    start_broadcast_thread(client_senders.clone(), manager.clone());
 
 
 
@@ -113,6 +112,8 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
                                 let message = OwnedMessage::Close(None);
                                 sender.send_message(&message).unwrap_or(());
                                 println!("Client {} disconnected", ip);
+                                // This client will be remove from the client_senders list by
+                                // the next broadcast call
                                 return;
                             },
                             OwnedMessage::Ping(ping) => {
@@ -159,7 +160,6 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
             }
         });
     }
-    println!("end socker");
 }
 
 
@@ -169,31 +169,40 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
 /// this channel for update and sends them to each connected socket client.
 /// client_senders:     List of clients
 /// manager:            DSCManager, to set update channel
-fn start_bradcast_thread(client_senders: ClientSenders, manager: DSCManagerMutex) {
+fn start_broadcast_thread(client_senders: ClientSenders, manager: DSCManagerMutex) {
     let (on_update_tx, on_update_rx) = mpsc::channel::<Update>();
     manager.lock().unwrap().on_update_tx = Some(on_update_tx);
     thread::spawn(move || {
         loop {
             if let Ok(msg) = on_update_rx.try_recv() {
                 match msg {
-                    Update::Data(string) => {
-                        for sender in client_senders.lock().unwrap().iter() {
-                            match sender.send(string.clone()) {
-                                Result::Ok(_) => {},
-                                Result::Err(err) => {
-                                    println!("send to client: {}", err);
-                                    // TODO clean up closed senders
-                                    continue;
-                                },
-                            };
-                        }
-                    },
+                    Update::Data(message) => broadcast_to_all(client_senders.clone(), message),
                     Update::Error(err) => println!("{}", err),
                 }
             }
             thread::sleep(Duration::from_millis(100));
         }
     });
+}
+
+/// Send given message to all active client. If a client is closed, we clean up the acitve clients
+/// list by removing them.
+fn broadcast_to_all(client_senders: ClientSenders, message: String) {
+    // We save the index of closed sockets here
+    let mut to_remove: Vec<usize> = Vec::new();
+    let mut senders = client_senders.lock().unwrap();
+    for (index, sender) in senders.iter().enumerate() {
+        match sender.send(message.clone()) {
+            Result::Ok(_) => {},
+            Result::Err(_) => to_remove.push(index),
+        };
+    }
+
+    // Remove all closed sockets we detected
+    // by reverse looping over the to_remove array
+    for index in to_remove.iter().rev() {
+        senders.remove(*index);
+    }
 }
 
 

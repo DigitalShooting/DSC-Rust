@@ -1,14 +1,12 @@
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
-use std::error::Error;
-use std::io::prelude::*;
 
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use discipline::*;
-use session::Shot;
+use session::ShotRaw;
 use device_api::api::{API, Action, DeviceCommand};
 
 // use std::io::BufReader;
@@ -43,7 +41,7 @@ enum DataError {
 
 
 enum NopResult {
-    Shot(Shot),
+    Shot(ShotRaw),
     Ack,
     Err(DataError),
 }
@@ -56,21 +54,21 @@ const ESA_FETCH_INTERVAL: u64 = 1000;
 pub struct ESA {
     /// Path to the serial device connected to the ESA interface.
     path: String,
+    on_part_band: u8,
+    on_shot_band: u8,
     discipline: Discipline,
 }
 
 impl ESA {
     /// Init new DeviceAPI for ESA.
     /// path:   Path to the serial device connected to the ESA interface.
-    pub fn new(path: String, discipline: Discipline) -> ESA {
-        ESA { path, discipline }
+    pub fn new(path: String, on_part_band: u8, on_shot_band: u8, discipline: Discipline) -> ESA {
+        ESA { path, on_part_band, on_shot_band, discipline }
     }
 
     /// Configure serial port to requied parameters
     /// path:   Path to the serial port device
     fn serial_open(path: String) -> Result<i32, SerialError> {
-        // let port = b"/dev/ttyS0\0";
-        // let path = path.push("\0");
         let port = unsafe { serialOpen(path.as_ptr()) };
         if port == -1 {
             return Result::Err(SerialError::OpenError);
@@ -103,7 +101,7 @@ impl ESA {
     fn read(port: SerialPort) -> Result<Vec<u8>, DataError> {
         const MAX_LEN: usize = 50;
         let raw: [u8; MAX_LEN] = [0; MAX_LEN];
-        let mut read_len: usize;
+        let read_len: usize;
         unsafe {
             read_len = serialRead(port, raw.as_ptr(), MAX_LEN);
         };
@@ -207,7 +205,7 @@ impl ESA {
     /// Send NOP command to ESA device
     /// port:       port to sent it to.
     /// return:     NopResult (Shot, Nop, Error)
-    fn perform_nop(port: SerialPort, target: &Target) -> NopResult {
+    fn perform_nop(port: SerialPort) -> NopResult {
         println!("perform_nop");
 
         let data = ESA::form_command_data(vec![0]);
@@ -227,9 +225,7 @@ impl ESA {
                         let _time = cursor.read_u32::<BigEndian>().unwrap();
                         let x = cursor.read_i32::<BigEndian>().unwrap();
                         let y = cursor.read_i32::<BigEndian>().unwrap();
-
-                        let shot = Shot::from_cartesian_coordinates(x, y, target);
-                        return NopResult::Shot(shot);
+                        return NopResult::Shot(ShotRaw { x, y });
                     }
                     _ => {
                         println!("Read Error: invalid payload: {:?}", payload);
@@ -279,7 +275,7 @@ impl API for ESA {
 
         // let rx = self.channel_rx;
         let serial_path = self.path.clone();
-        let target = self.discipline.target.clone();
+        let discipline = self.discipline.clone();
         thread::spawn(move || {
 
             // Sleep twice the interval time, to make shure the previous process has
@@ -303,10 +299,13 @@ impl API for ESA {
                             },
                             // When we got no message we generate a shot
                             Err(TryRecvError::Empty) => {
-                                match ESA::perform_nop(port, &target) {
+                                match ESA::perform_nop(port) {
                                     NopResult::Shot(shot) => {
                                         println!("New Shot {:?}", shot);
-                                        tx.send(Action::NewShot(shot));
+                                        match tx.send(Action::NewShot(shot)) {
+                                            Ok(_) => {},
+                                            Err(err) => println!("{}", err),
+                                        }
                                     }
                                     NopResult::Ack => {
 

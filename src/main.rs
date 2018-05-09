@@ -16,7 +16,6 @@ extern crate rand;
 // extern crate time;
 // extern crate num_rational;
 
-
 mod discipline;
 mod session;
 mod helper;
@@ -24,27 +23,11 @@ mod dsc_manager;
 mod device_api;
 mod web;
 
-// use std::sync::{mpsc};
-// use std::thread;
-// use std::time::Duration;
+use dsc_manager::*;
+use session::Line;
+use web::*;
 
 
-use std::sync::{Arc, Mutex};
-/*
-// use std::sync::{Arc, Mutex, mpsc};
-
-// use std::sync::mpsc::channel;
-// use std::sync::mpsc::{self, TryRecvError, Sender, Receiver};
-// use std::io::{self, BufRead};
-*/
-
-
-// use session::shot::*;
-// use discipline::*;
-
-
-use std::time::Duration;
-use std::thread;
 
 fn main() {
     start_dsc();
@@ -53,15 +36,13 @@ fn main() {
 
 
 fn start_dsc() {
-    use std::sync::mpsc;
-    use std::thread;
-
-    use dsc_manager::*;
-    use web::*;
-
     // Init manager
-    let (mut manager, manager_thread) = DSCManager::new_with_default();
-
+    let line = Line {
+        id: "01".to_string(),
+        name: "Linie 1".to_string(),
+        short_name: "1".to_string(),
+    };
+    let (manager, manager_thread) = DSCManager::new_with_default(line);
 
     // Start websocket server
     let config = socket::Config {

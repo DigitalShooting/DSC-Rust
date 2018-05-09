@@ -7,6 +7,12 @@ pub fn lg_discipline() -> Discipline {
     Discipline {
         id: String::from("demoPart"),
         title: String::from("LG Demo"),
+        interface: Interface::Demo {interval: 1000, max_shots: Some(40)},
+        // interface: Interface::ESA {
+        //     port: "/dev/ttyS0".to_string(),
+        //     on_part_band: 3,
+        //     on_shot_band: 2,
+        // },
         time: Time::FirstShot { duration: 40 },
         target: Target {
             title: String::from("LG 10m"),
@@ -120,7 +126,7 @@ pub fn lg_discipline() -> Discipline {
                 series_length: 10,
                 number_of_shots: 40,
                 show_infos: true,
-                count_mode: PartCountMode::Integer,
+                count_mode: PartCountMode::Tenth,
                 time: Time::None,
                 average: PartAverage::Average { number_of_shots: 40 },
                 exit_type: PartExitType::Always,

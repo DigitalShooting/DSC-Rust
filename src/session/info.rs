@@ -1,12 +1,33 @@
 
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Info {
+    user: User,
+    club: Club,
+    team: Team,
+    line: Line,
+
+}
+
+impl Info {
+    pub fn new(line: Line) -> Info {
+        Info {
+            user: User::guest(),
+            club: Club::empty(),
+            team: Team::empty(),
+            line,
+        }
+    }
+}
+
+
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct User {
-    pub first_name: String,
-    pub last_name: String,
-    pub id: String,
+struct User {
+    first_name: String,
+    last_name: String,
+    id: String,
 }
 
 impl User {
@@ -30,9 +51,9 @@ impl User {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Club {
-    pub name: String,
-    pub id: String,
+struct Club {
+    name: String,
+    id: String,
 }
 
 impl Club {
@@ -47,9 +68,9 @@ impl Club {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Team {
-    pub name: String,
-    pub id: String,
+struct Team {
+    name: String,
+    id: String,
 }
 
 impl Team {
@@ -61,6 +82,14 @@ impl Team {
     }
 }
 
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Line {
+    pub id: String,
+    pub name: String,
+    pub short_name: String,
+}
 
 
 

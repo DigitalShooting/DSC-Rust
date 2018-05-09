@@ -4,27 +4,91 @@ use helper::round_to_one::RoundToOne;
 use discipline::*;
 
 
+
+#[derive(Debug)]
+pub struct ShotRaw {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl ShotRaw {
+
+    /// Generate a random shot. We need a target to calculate the ring
+    /// discipline:     Discipline to use to calculate ring
+    pub fn random() -> ShotRaw {
+        let mut rng = rand::thread_rng();
+        let x = rng.gen_range(-8000, 8000);
+        let y = rng.gen_range(-8000, 8000);
+        return ShotRaw { x, y };
+    }
+
+}
+
+
+
+
+/// Represents a single shot, with all its metadata.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Shot {
     pub teiler: f64,
     pub angle: f64,
     pub x: i32,
     pub y: i32,
+
+    /// the actual ring, always with tenths
     pub ring: f64,
+    /// the counted part of the ring, e.g
+    /// - no tenth 10.3 => ring_count = 10
+    /// - tenth 10.3 => ring_count = 10.3
     pub ring_count: f64,
+
+    // TODO
     // date: ???,
 }
 
+
+struct Counter {
+    value: i32,
+    pub text: String,
+    count_mode: PartCountMode,
+}
+
+// impl Counter {
+//     pub fn new(value: i32, count_mode: PartCountMode) {
+//         let text = "todo".to_string();
+//         Counter { value, text, count_mode }
+//     }
+//
+//     pub fn add(&mut self, rhs: Counter) {
+//         if rhs.count_mode != self.count_mode {
+//             // TODO raise error
+//         }
+//         value += value
+//     }
+//
+//     pub fn as_float() -> f64 {
+//         0_f64 // TODO
+//     }
+//
+//     fn update_text(&mut self) {
+//
+//     }
+// }
+
+
 impl Shot {
-    pub fn random(target: &Target) -> Shot {
-        let mut rng = rand::thread_rng();
-        let x = rng.gen_range(-8000, 8000);
-        let y = rng.gen_range(-8000, 8000);
-        return Shot::from_cartesian_coordinates(x, y, target);
+
+    pub fn from_raw(raw: ShotRaw, target: &Target, discipline_part: &DisciplinePart) -> Shot {
+        Shot::from_cartesian_coordinates(raw.x, raw.y, target, discipline_part)
     }
 
-    // fn from_cartesian_coordinates(x: i32, y: i32, target: Target, part: Part) -> Shot {
-    pub fn from_cartesian_coordinates(x: i32, y: i32, target: &Target) -> Shot {
+    /// New shot from x and y coordinates in 1/1000 mm
+    /// x:                  x coordinate in 1/1000 mm
+    /// y:                  y coordinate in 1/1000 mm
+    /// target:             Target to use to calculate ring
+    /// discipline_part     Active discipline_part to get PartCountMode
+    /// TODO Custom type maybe for tenth/ no tenth handling?
+    fn from_cartesian_coordinates(x: i32, y: i32, target: &Target, discipline_part: &DisciplinePart) -> Shot {
         let x_f64 = x as f64;
         let y_f64 = y as f64;
 
@@ -40,38 +104,34 @@ impl Shot {
         }
 
         let ring = Shot::get_ring_from_teiler(teiler, target);
-        // this.ring.display = parseFloat(ring).toFixed(1);
-        // this.ring.int = parseFloat(ring).toFixedDown(0);
-
-        // TODO use ring_count
-        // if (part.zehntel === true) {
-        //   this.ring.value = parseFloat(ring).toFixedDown(1);
-        // }
-        // else {
-        //   this.ring.value = parseFloat(ring).toFixedDown(0);
-        // }
-        // let ring_count = (ring*10_f64).round() / 10_f64;
-        let ring_count = ring.floor();
+        let ring_count: f64 = match discipline_part.count_mode {
+            PartCountMode::Integer => ring.floor(),
+            PartCountMode::Tenth => ring, //(ring*10_f64).floor(),
+        };
 
         return Shot {teiler, angle, x, y, ring, ring_count};
     }
 
+    /// Helper to calculate the actual ring for a given teiler
+    /// teiler:     Teiler of the shot (1/100mm)
+    /// target:     Target to use
     fn get_ring_from_teiler(teiler: f64, target: &Target) -> f64 {
         let ring_big = target.rings.first().unwrap();
         let ring_small = target.rings.last().unwrap();
         let k = target.bullet_diameter * 100_f64 / 2_f64;
 
         let ring: f64;
+        // If its 0, its a 10.9, not an 11
         if teiler == 0_f64 {
             ring = 10.9_f64;
         }
+        // If it is smaller than the smallest ring, its a 0
         else if teiler > ring_small.width * 100_f64 / 2_f64 + k {
             ring = 0_f64;
         }
         else {
             let m = ((ring_big.value - ring_small.value) as f64) / (ring_big.width*100_f64/2_f64 - ring_small.width*100_f64/2_f64);
             let t =  (ring_big.value as f64) - m * (ring_big.width*100_f64/2_f64 + k);
-
             ring = (m * teiler + t).cut_at_one();
         }
         return ring;
@@ -81,12 +141,13 @@ impl Shot {
 
 
 
+pub trait AddShotWithDiscipline {
+    fn add_shot(&mut self, Shot, &Discipline);
+}
 
-
-
-
-
-
+pub trait AddShot {
+    fn add_shot(&mut self, Shot);
+}
 
 
 
