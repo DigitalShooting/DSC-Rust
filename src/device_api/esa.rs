@@ -47,7 +47,7 @@ enum NopResult {
 }
 
 // Time interval (ms) in which we search for new shots
-const ESA_FETCH_INTERVAL: u64 = 1000;
+const ESA_FETCH_INTERVAL: u64 = 200;
 
 
 /// DeviceAPI for Haering ESA.
@@ -106,7 +106,7 @@ impl ESA {
             read_len = serialRead(port, raw.as_ptr(), MAX_LEN);
         };
 
-        println!("{} {:?}", read_len, raw.to_vec());
+        // println!("{} {:?}", read_len, raw.to_vec());
         let mut payload: Vec<u8> = Vec::new();
         for i in 0..read_len {
 
@@ -206,7 +206,7 @@ impl ESA {
     /// port:       port to sent it to.
     /// return:     NopResult (Shot, Nop, Error)
     fn perform_nop(port: SerialPort) -> NopResult {
-        println!("perform_nop");
+        // println!("perform_nop");
 
         let data = ESA::form_command_data(vec![0]);
         ESA::write(port, data);

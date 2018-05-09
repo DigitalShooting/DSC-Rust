@@ -1,3 +1,4 @@
+use session::counter::Counter;
 use session::shot::*;
 use discipline::*;
 
@@ -5,14 +6,16 @@ use discipline::*;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Series {
     pub shots: Vec<Shot>,
-    sum: f64,
+    sum: Counter,
+    number_of_shots: i32,
 }
 
 impl Series {
     pub fn new() -> Series {
         Series {
             shots: vec![],
-            sum: 0_f64,
+            sum: Counter::empty(),
+            number_of_shots: 0,
         }
     }
 }
@@ -25,11 +28,11 @@ impl Series {
 
 
 
-impl AddShotWithDiscipline for Series {
-    fn add_shot(&mut self, shot: Shot, _discipline: &Discipline) {
+impl AddShot for Series {
+    fn add_shot(&mut self, shot: Shot, _discipline: &Discipline, count_mode: &PartCountMode) {
         // add ring count so series sum
-        // TODO round
-        self.sum += shot.ring_count;
+        self.sum.add(shot.ring_count, &count_mode);
+        self.number_of_shots += 1;
 
         // add shot to series
         self.shots.push(shot);

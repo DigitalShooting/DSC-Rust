@@ -104,10 +104,10 @@ impl DSCManager {
                     match message {
                         Action::NewShot(shot_raw) => match manager.session.get_active_discipline_part() {
                             Some(discipline_part) => {
-                                let target = discipline.target.clone();
-                                let shot = Shot::from_raw(shot_raw, &target, &discipline_part);
-                                println!("{:?}", shot);
-                                manager.session.add_shot(shot);
+                                // let target = discipline.target.clone();
+                                // let shot = Shot::from_raw(shot_raw, &target, &discipline_part.count_mode);
+                                // println!("{:?}", shot);
+                                manager.session.add_shot_raw(shot_raw);
                                 manager.update_sessions();
                             }
                             None => println!("can no add shot, active_discipline_part nil"),

@@ -32,7 +32,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("#000000"), alpha: 1.0 },
                     has_text: false,
                     text_color: WebColor { hex: String::from("#ffffff"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 3.0,
                     hit_color: WebColor { hex: String::from("green"), alpha: 1.0 },
                 },
                 Ring {
@@ -41,7 +41,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("#000000"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("#ffffff"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 2.7,
                     hit_color: WebColor { hex: String::from("yellow"), alpha: 1.0 },
                 },
                 Ring {
@@ -50,7 +50,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("#000000"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("#ffffff"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 2.0,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
                 Ring {
@@ -59,7 +59,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("000000"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("#ffffff"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 1.5,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
                 Ring {
@@ -68,7 +68,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("#000000"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("#ffffff"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 1.0,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
                 Ring {
@@ -77,7 +77,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("#000000"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("#ffffff"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 1.0,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
                 Ring {
@@ -86,7 +86,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("white"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("black"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 1.0,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
                 Ring {
@@ -95,7 +95,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("white"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("black"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 1.0,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
                 Ring {
@@ -104,7 +104,7 @@ pub fn lg_discipline() -> Discipline {
                     color: WebColor { hex: String::from("white"), alpha: 1.0 },
                     has_text: true,
                     text_color: WebColor { hex: String::from("black"), alpha: 1.0 },
-                    zoom: 4.0,
+                    zoom: 1.0,
                     hit_color: WebColor { hex: String::from("#00bffF"), alpha: 1.0 },
                 },
             ],
@@ -134,8 +134,6 @@ pub fn lg_discipline() -> Discipline {
         ],
     }
 }
-
-
 
 
 pub fn lg_target() -> Target {

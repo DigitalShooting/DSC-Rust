@@ -20,10 +20,18 @@ pub struct DisciplinePart {
     pub exit_type: PartExitType,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum PartCountMode {
     Integer,
     Tenth,
+}
+impl PartCountMode {
+    pub fn to_string(self, value: f64) -> String {
+        match self {
+            PartCountMode::Integer => format!("{:.0}", value),
+            PartCountMode::Tenth => format!("{:.1}", value),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -1,3 +1,4 @@
+use session::counter::Counter;
 use session::shot::*;
 use session::part::*;
 use session::info::{Line, Info};
@@ -19,7 +20,8 @@ pub struct Session {
     pub discipline: Discipline,
     pub info: Info,
     active_session: ActiveSession,
-    sum: f64,
+    sum: Counter,
+    number_of_shots: i32,
 }
 
 impl Session {
@@ -31,7 +33,8 @@ impl Session {
             discipline: discipline,
             info: Info::new(line),
             active_session: 0,
-            sum: 0_f64,
+            sum: Counter::empty(),
+            number_of_shots: 0,
         }
     }
 
@@ -50,15 +53,22 @@ impl Session {
 
 
 
-impl AddShot for Session {
-    fn add_shot(&mut self, shot: Shot) {
-        // add ring count to session sum
-        // TODO round
-        self.sum += shot.ring_count;
+impl AddShotRaw for Session {
+    fn add_shot_raw(&mut self, shot_raw: ShotRaw) {
+        match self.get_active_discipline_part() {
+            Some(discipline_part) => {
+                let count_mode = discipline_part.count_mode;
+                let shot = Shot::from_raw(shot_raw, &self.discipline.target, &count_mode);
 
-        // add shot to the active session
-        let active_session = &mut self.parts[self.active_session];
-        active_session.add_shot(shot, &self.discipline);
+                self.sum.add(shot.ring_count, &count_mode);
+                self.number_of_shots += 1;
+
+                // add shot to the active session
+                let active_session = &mut self.parts[self.active_session];
+                active_session.add_shot(shot, &self.discipline, &discipline_part.count_mode);
+            },
+            None => println!("no discipline_part"),
+        }
     }
 }
 
@@ -84,9 +94,9 @@ mod test {
     fn test_add_shot() {
         let target = helper::dsc_demo::lg_target();
         let discipline = helper::dsc_demo::lg_discipline();
-        let shot = Shot::from_cartesian_coordinates (0, 0, &target);
+        let shot = Shot::from_cartesian_coordinates (0, 0, &target, &PartCountMode::Integer);
 
-        let mut session = Session::new(discipline);
+        let mut session = Session::new(Line::demo(), discipline);
         assert_eq!(1, session.parts.len());
         assert_eq!(0, session.active_session);
 
