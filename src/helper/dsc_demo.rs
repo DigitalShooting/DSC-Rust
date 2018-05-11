@@ -1,5 +1,5 @@
-
 use discipline::*;
+use session::counter::CountMode;
 
 
 
@@ -126,7 +126,7 @@ pub fn lg_discipline() -> Discipline {
                 series_length: 10,
                 number_of_shots: 40,
                 show_infos: true,
-                count_mode: PartCountMode::Tenth,
+                count_mode: CountMode::Tenth,
                 time: Time::None,
                 average: PartAverage::Average { number_of_shots: 40 },
                 exit_type: PartExitType::Always,

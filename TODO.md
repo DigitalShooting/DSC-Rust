@@ -1,6 +1,8 @@
 # TODO
 
 ## Backend
+- support muliple configs for discipline
+- send available configs to client
 - Print
   - Render SVG in rust
   - use latex template

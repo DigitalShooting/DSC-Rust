@@ -3,7 +3,6 @@ use std::thread;
 use std::time::Duration;
 
 use session::ShotRaw;
-use helper;
 use device_api::api::{API, Action, DeviceCommand};
 
 

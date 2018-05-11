@@ -1,4 +1,4 @@
-use session::counter::Counter;
+use session::{Counter, CountMode};
 use session::shot::*;
 use session::series::*;
 use discipline::*;
@@ -52,7 +52,7 @@ impl Part {
 
 
 impl AddShot for Part {
-    fn add_shot(&mut self, shot: Shot, discipline: &Discipline, count_mode: &PartCountMode) {
+    fn add_shot(&mut self, shot: Shot, discipline: &Discipline, count_mode: &CountMode) {
         match self.get_discipline_part(discipline) {
             Some(discipline_part) => {
                 // Add the ring count to the part sum

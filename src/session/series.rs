@@ -1,6 +1,8 @@
 use session::counter::Counter;
 use session::shot::*;
 use discipline::*;
+use session::CountMode;
+
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,7 +35,7 @@ impl Series {
 
 
 impl AddShot for Series {
-    fn add_shot(&mut self, shot: Shot, _discipline: &Discipline, count_mode: &PartCountMode) {
+    fn add_shot(&mut self, shot: Shot, _discipline: &Discipline, count_mode: &CountMode) {
         // add ring count so series sum
         self.sum.add(shot.ring_count, &count_mode);
         self.number_of_shots += 1;

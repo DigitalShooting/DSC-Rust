@@ -5,7 +5,7 @@ pub mod series;
 pub mod session;
 pub mod shot;
 
-pub use self::counter::Counter;
+pub use self::counter::{Counter, CountMode};
 pub use self::info::{Line, Info};
 pub use self::part::Part;
 pub use self::series::Series;

@@ -1,15 +1,12 @@
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
-
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use discipline::*;
 use session::ShotRaw;
 use device_api::api::{API, Action, DeviceCommand};
-
-// use std::io::BufReader;
 
 /// We use some c functions to comunicate with the ESA interface, using rust crates just did not
 /// work. I just could not read data from the device.
@@ -276,6 +273,8 @@ impl API for ESA {
         // let rx = self.channel_rx;
         let serial_path = self.path.clone();
         let discipline = self.discipline.clone();
+        let on_part_band = self.on_part_band;
+        let on_shot_band = self.on_shot_band;
         thread::spawn(move || {
 
             // Sleep twice the interval time, to make shure the previous process has
@@ -284,11 +283,7 @@ impl API for ESA {
 
             match ESA::serial_open(serial_path) {
                 Ok(port) => {
-                    ESA::perform_set(port, 1_u8); // Todo from discipline
-                    // thread::sleep(Duration::from_millis(100));
-                    ESA::perform_band(port, 1_u8); // Todo from discipline
-                    // thread::sleep(Duration::from_millis(100));
-
+                    ESA::perform_set(port, on_shot_band);
                     loop {
                         match rx.try_recv() {
                             // Stop if we got a stop message or the channel disconnected
@@ -297,6 +292,7 @@ impl API for ESA {
                                 ESA::serial_close(port);
                                 break;
                             },
+                            Ok(DeviceCommand::NewPart) => ESA::perform_band(port, on_part_band),
                             // When we got no message we generate a shot
                             Err(TryRecvError::Empty) => {
                                 match ESA::perform_nop(port) {
@@ -316,8 +312,7 @@ impl API for ESA {
                                 }
 
                                 thread::sleep(Duration::from_millis(ESA_FETCH_INTERVAL));
-                            }
-                            _ => {},
+                            },
                         }
                     }
                 },

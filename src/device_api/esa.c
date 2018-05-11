@@ -43,7 +43,9 @@ void serialWrite(int fd, unsigned char data[], size_t length) {
   // Disable RTS to send
   setRTS(fd, 0);
   write(fd, data, length);
-  usleep(1041*sizeof(data));
+  // usleep(1041*sizeof(data));
+  // usleep(8328);
+  usleep(8192);
 }
 
 
@@ -60,6 +62,7 @@ size_t serialRead(int fd, unsigned char *arr, size_t length) {
     int err = read(fd, &arr[i], 1);
     if (err == -1) return i;
   }
+  return length;
 }
 
 

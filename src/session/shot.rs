@@ -2,6 +2,7 @@ use rand::{self, Rng};
 
 use helper::round_to_one::RoundToOne;
 use discipline::*;
+use session::counter::CountMode;
 
 
 
@@ -50,7 +51,7 @@ pub struct Shot {
 
 impl Shot {
 
-    pub fn from_raw(raw: ShotRaw, target: &Target, count_mode: &PartCountMode) -> Shot {
+    pub fn from_raw(raw: ShotRaw, target: &Target, count_mode: &CountMode) -> Shot {
         Shot::from_cartesian_coordinates(raw.x, raw.y, target, count_mode)
     }
 
@@ -58,9 +59,9 @@ impl Shot {
     /// x:                  x coordinate in 1/1000 mm
     /// y:                  y coordinate in 1/1000 mm
     /// target:             Target to use to calculate ring
-    /// count_mode          PartCountMode to use
+    /// count_mode          CountMode to use
     /// TODO Custom type maybe for tenth/ no tenth handling?
-    pub fn from_cartesian_coordinates(x: i32, y: i32, target: &Target, count_mode: &PartCountMode) -> Shot {
+    pub fn from_cartesian_coordinates(x: i32, y: i32, target: &Target, count_mode: &CountMode) -> Shot {
         let x_f64 = x as f64;
         let y_f64 = y as f64;
 
@@ -77,8 +78,8 @@ impl Shot {
 
         let ring = Shot::get_ring_from_teiler(teiler, target);
         let ring_count: f64 = match count_mode {
-            &PartCountMode::Integer => ring.floor(),
-            &PartCountMode::Tenth => ring,
+            &CountMode::Integer => ring.floor(),
+            &CountMode::Tenth => ring,
         };
 
         let ring_text = format!("{:.1}", ring);
@@ -116,7 +117,7 @@ impl Shot {
 
 
 pub trait AddShot {
-    fn add_shot(&mut self, Shot, &Discipline, &PartCountMode);
+    fn add_shot(&mut self, Shot, &Discipline, &CountMode);
 }
 
 pub trait AddShotRaw {
@@ -136,7 +137,7 @@ mod test {
     #[test]
     fn test_zero_teiler() {
         let target = helper::dsc_demo::lg_target();
-        let shot = Shot::from_cartesian_coordinates (0, 0, &target, &PartCountMode::Integer);
+        let shot = Shot::from_cartesian_coordinates (0, 0, &target, &CountMode::Integer);
         assert_eq!(0_f64, shot.teiler);
         assert_eq!(0_f64, shot.angle);
         assert_eq!(0_i32, shot.x);
@@ -147,7 +148,7 @@ mod test {
     #[test]
     fn test_last_ten_1() {
         let target = helper::dsc_demo::lg_target();
-        let shot = Shot::from_cartesian_coordinates (2500, 0, &target, &PartCountMode::Integer);
+        let shot = Shot::from_cartesian_coordinates (2500, 0, &target, &CountMode::Integer);
         assert_eq!(250.0_f64, shot.teiler);
         assert_eq!(0_f64, shot.angle);
         assert_eq!(2500_i32, shot.x);
@@ -158,7 +159,7 @@ mod test {
     #[test]
     fn test_last_ten_2() {
         let target = helper::dsc_demo::lg_target();
-        let shot = Shot::from_cartesian_coordinates (0, 2500, &target, &PartCountMode::Integer);
+        let shot = Shot::from_cartesian_coordinates (0, 2500, &target, &CountMode::Integer);
         assert_eq!(250.0_f64, shot.teiler);
         assert_eq!(90_f64, shot.angle);
         assert_eq!(0_i32, shot.x);
@@ -169,7 +170,7 @@ mod test {
     #[test]
     fn test_first_nine() {
         let target = helper::dsc_demo::lg_target();
-        let shot = Shot::from_cartesian_coordinates (2501, 0, &target, &PartCountMode::Integer);
+        let shot = Shot::from_cartesian_coordinates (2501, 0, &target, &CountMode::Integer);
         assert_eq!(250.1_f64, shot.teiler);
         assert_eq!(0_f64, shot.angle);
         assert_eq!(2501_i32, shot.x);
@@ -180,7 +181,7 @@ mod test {
     #[test]
     fn test_zero() {
         let target = helper::dsc_demo::lg_target();
-        let shot = Shot::from_cartesian_coordinates (-1000000, 0, &target, &PartCountMode::Integer);
+        let shot = Shot::from_cartesian_coordinates (-1000000, 0, &target, &CountMode::Integer);
         assert_eq!(100000_f64, shot.teiler);
         assert_eq!(180_f64, shot.angle);
         assert_eq!(-1000000, shot.x);

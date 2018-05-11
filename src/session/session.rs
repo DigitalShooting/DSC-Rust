@@ -101,7 +101,7 @@ mod test {
     fn test_add_shot() {
         let target = helper::dsc_demo::lg_target();
         let discipline = helper::dsc_demo::lg_discipline();
-        let shot = Shot::from_cartesian_coordinates (0, 0, &target, &PartCountMode::Integer);
+        let shot = Shot::from_cartesian_coordinates (0, 0, &target, &CountMode::Integer);
 
         let mut session = Session::new(Line::demo(), discipline);
         assert_eq!(1, session.parts.len());
