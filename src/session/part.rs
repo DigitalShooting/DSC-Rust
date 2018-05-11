@@ -17,7 +17,7 @@ pub struct Part {
 pub type PartType = String;
 
 impl Part {
-    // fn new(discipline: Discipline) -> Part {
+    /// New empty part
     pub fn new() -> Part {
         Part {
             series: vec![
@@ -29,13 +29,14 @@ impl Part {
         }
     }
 
-    // Add a new series to the part an update the active series index
+    /// Add a new series to the part an update the active series index
     fn new_series(&mut self) {
         let new_series = Series::new();
         self.series.push(new_series);
     }
 
-    fn get_discipline_part<'a>(&self, discipline: &'a Discipline) -> Option<&'a DisciplinePart> {
+    /// Return the current DisciplinePart from the given Discipline
+    pub fn get_discipline_part<'a>(&self, discipline: &'a Discipline) -> Option<&'a DisciplinePart> {
         for part in &discipline.parts {
             if part.id == self.part_type {
                 return Some(part)

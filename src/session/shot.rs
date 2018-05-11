@@ -26,7 +26,6 @@ impl ShotRaw {
 
 
 
-
 /// Represents a single shot, with all its metadata.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Shot {
@@ -79,7 +78,7 @@ impl Shot {
         let ring = Shot::get_ring_from_teiler(teiler, target);
         let ring_count: f64 = match count_mode {
             &PartCountMode::Integer => ring.floor(),
-            &PartCountMode::Tenth => ring, //(ring*10_f64).floor(),
+            &PartCountMode::Tenth => ring,
         };
 
         let ring_text = format!("{:.1}", ring);

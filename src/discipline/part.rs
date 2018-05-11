@@ -26,10 +26,23 @@ pub enum PartCountMode {
     Tenth,
 }
 impl PartCountMode {
+    /// Creates a string according to the CountMode
+    /// value:  value to round
+    /// return: rounded string
     pub fn to_string(self, value: f64) -> String {
         match self {
-            PartCountMode::Integer => format!("{:.0}", value),
+            PartCountMode::Integer => format!("{:.0}", value.floor()),
             PartCountMode::Tenth => format!("{:.1}", value),
+        }
+    }
+
+    /// Round given value according to the CountMode
+    /// value:  value to round
+    /// return: rounded value
+    pub fn round(self, value: f64) -> f64 {
+        match self {
+            PartCountMode::Integer => value.floor(),
+            PartCountMode::Tenth => (value * 10.0).round() / 10.0,
         }
     }
 }

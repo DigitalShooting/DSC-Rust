@@ -17,31 +17,38 @@ pub type ActiveSession = usize;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
     pub parts: Vec<Part>,
+    active_part: ActiveSession,
     pub discipline: Discipline,
     pub info: Info,
-    active_session: ActiveSession,
     sum: Counter,
     number_of_shots: i32,
 }
 
 impl Session {
+    /// New session with given discipline
+    /// line:           Line config to use
+    /// discipline:     Discipline to use
+    /// return:         Empty session
     pub fn new(line: Line, discipline: Discipline) -> Session {
         Session {
             parts: vec![
                 Part::new(),
             ],
+            active_part: 0,
             discipline: discipline,
             info: Info::new(line),
-            active_session: 0,
             sum: Counter::empty(),
             number_of_shots: 0,
         }
     }
 
+    /// Return the active part
+    /// return:     None if the active_part is set wrong
     pub fn get_active_part(&mut self) -> Option<&Part> {
-        return self.parts.get(self.active_session);
+        self.parts.get(self.active_part)
     }
 
+    /// Get the active discipline part
     pub fn get_active_discipline_part(&mut self) -> Option<DisciplinePart> {
         let active_part_type = self.get_active_part()?.part_type.clone();
         self.discipline.get_part_from_type(active_part_type)
@@ -64,8 +71,8 @@ impl AddShotRaw for Session {
                 self.number_of_shots += 1;
 
                 // add shot to the active session
-                let active_session = &mut self.parts[self.active_session];
-                active_session.add_shot(shot, &self.discipline, &discipline_part.count_mode);
+                let active_part = &mut self.parts[self.active_part];
+                active_part.add_shot(shot, &self.discipline, &discipline_part.count_mode);
             },
             None => println!("no discipline_part"),
         }
@@ -98,9 +105,7 @@ mod test {
 
         let mut session = Session::new(Line::demo(), discipline);
         assert_eq!(1, session.parts.len());
-        assert_eq!(0, session.active_session);
-
-        session.add_shot(shot);
+        assert_eq!(0, session.active_part);
     }
 
 }

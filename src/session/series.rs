@@ -11,6 +11,7 @@ pub struct Series {
 }
 
 impl Series {
+    /// New, empty series
     pub fn new() -> Series {
         Series {
             shots: vec![],
@@ -21,6 +22,9 @@ impl Series {
 }
 
 impl Series {
+    /// Check if the series is full, for given discipline_part
+    /// discipline_part:    part tho use to check if the series is full
+    /// return:             true/ false, if full or not
     pub fn is_full<'a, 'b>(&'a self, discipline_part: &'b DisciplinePart) -> bool {
         return self.shots.len() as i32 >= discipline_part.series_length
     }

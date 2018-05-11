@@ -77,6 +77,27 @@ impl DSCManager {
 
 
 
+    /// Start the manager thread and return its JoinHandle
+    /// manager_mutex:  DSCMangerMutex, will be locked befor every access in the run loop
+    pub fn start(manager: DSCManagerMutex) -> DSCManagerThread {
+        // Start default discipline
+        // TODO read default from config?
+        let discipline = manager.lock().unwrap().session.discipline.clone();
+        manager.lock().unwrap().start_shot_provider(discipline);
+
+        // Start and return main manager worker thread.
+        // This will check the device channel for new shots, adds them to the session and send an
+        // update to the observer (over the on_update_tx channel).
+        return thread::spawn(move || {
+            loop {
+                manager.lock().unwrap().check_device_channel();
+                thread::sleep(Duration::from_millis(100));
+            }
+        });
+    }
+
+
+
     // send current session data as json to the client (socket)
     fn update_sessions(&mut self) {
         if let Some(ref on_update_tx) = self.on_update_tx {
@@ -92,34 +113,25 @@ impl DSCManager {
         }
     }
 
-    /// Start the manager thread and return its JoinHandle
-    /// manager_mutex:  DSCMangerMutex, will be locked befor every access in the run loop
-    pub fn start(manager_mutex: DSCManagerMutex) -> DSCManagerThread {
-        let discipline = manager_mutex.lock().unwrap().session.discipline.clone();
-        manager_mutex.lock().unwrap().start_shot_provider(discipline.clone());
-        return thread::spawn(move || {
-            loop {
-                let mut manager = manager_mutex.lock().unwrap();
-                if let Ok(message) = manager.get_from_device_rx.try_recv() {
-                    match message {
-                        Action::NewShot(shot_raw) => match manager.session.get_active_discipline_part() {
-                            Some(discipline_part) => {
-                                // let target = discipline.target.clone();
-                                // let shot = Shot::from_raw(shot_raw, &target, &discipline_part.count_mode);
-                                // println!("{:?}", shot);
-                                manager.session.add_shot_raw(shot_raw);
-                                manager.update_sessions();
-                            }
-                            None => println!("can no add shot, active_discipline_part nil"),
-                        },
-                        Action::Error(err) => println!("Error {:?}", err),
+    // Check the get_from_device_rx channel for new messages from the device (e.g. shots).
+    // If we have some, we process them (e.g. add the shot to the session) and send an update to
+    // the observer.
+    fn check_device_channel(&mut self) {
+        if let Ok(message) = self.get_from_device_rx.try_recv() {
+            match message {
+                Action::NewShot(shot_raw) => match self.session.get_active_discipline_part() {
+                    Some(discipline_part) => {
+                        self.session.add_shot_raw(shot_raw);
+                        self.update_sessions();
                     }
-                }
-
-                thread::sleep(Duration::from_millis(100));
+                    None => println!("can no add shot, active_discipline_part nil"),
+                },
+                Action::Error(err) => println!("Error {:?}", err),
             }
-        });
+        }
     }
+
+
 
 
 
@@ -145,7 +157,7 @@ impl DSCManager {
     // pub fn set_part(&mut self, part: PartType) {
     //
     // }
-    // pub fn set_active_session(&mut self, index: ActiveSession) {
+    // pub fn set_active_part(&mut self, index: ActiveSession) {
     //
     // }
 
