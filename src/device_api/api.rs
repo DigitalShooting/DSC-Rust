@@ -10,7 +10,7 @@ pub enum DeviceCommand {
     /// Will stop the DeviceAPI.
     Stop,
 
-    /// Informs about a change in the part, we use it to move the paper pn Haering Devices.
+    /// Informs about a change in the part, we use it to move the paper on Haering Devices.
     NewPart,
 }
 
@@ -22,6 +22,8 @@ pub enum Action {
     /// Send an error event that occured in the DeviceAPI to the Manager
     Error(String),
 }
+
+
 
 /// Abstract Device to start and stop the DeviceAPI
 pub trait API {

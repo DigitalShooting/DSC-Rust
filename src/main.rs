@@ -16,6 +16,7 @@ extern crate rand;
 // extern crate time;
 // extern crate num_rational;
 
+mod config;
 mod discipline;
 mod session;
 mod helper;
@@ -23,13 +24,19 @@ mod dsc_manager;
 mod device_api;
 mod web;
 
+use config::Config;
 use dsc_manager::*;
 use session::Line;
 use web::*;
 
 
 
+
+
 fn main() {
+    let config = Config::new("./config/".to_string());
+    println!("{:?}", config);
+
     start_dsc();
 }
 
