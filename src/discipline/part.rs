@@ -11,7 +11,7 @@ pub struct DisciplinePart {
     pub main_part: bool, // TODO in use?
     pub enable_reset_to_new_target: bool, // renamed neueScheibe
     pub series_length: i32, // renamed serienLength
-    pub number_of_shots: i32, // renamed anzahlShots
+    pub number_of_shots: Option<i32>, // renamed anzahlShots
     pub show_infos: bool,
     pub count_mode: CountMode,
     pub time: Time,

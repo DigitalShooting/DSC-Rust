@@ -12,8 +12,6 @@ use std::time::Duration;
 
 use dsc_manager::*;
 
-use helper;
-
 
 type ClientSenders = Arc<Mutex<Vec<mpsc::Sender<String>>>>;
 
@@ -133,9 +131,7 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
                                                 manager_clone.lock().unwrap().new_target();
                                             },
                                             RequestType::SetDisciplin{ name } => {
-                                                // TODO get disziplin by name
-                                                let discipline = helper::dsc_demo::lg_discipline();
-                                                manager_clone.lock().unwrap().set_disciplin(discipline);
+                                                manager_clone.lock().unwrap().set_disciplin_by_name(&name);
                                             },
                                             RequestType::Shutdown => {
                                                 println!("Not Implemented");

@@ -11,13 +11,32 @@
     "type": "FirstShot",
     "duration": 40
   },
-  "target_name": "lg",
+  "target_name": "lp",
   "parts": [
     {
       "id": "probe",
       "name": "Probe",
       "has_trial_corner": true,
       "main_part": false,
+      "enable_reset_to_new_target": true,
+      "series_length": 10,
+      "number_of_shots": null,
+      "show_infos": true,
+      "count_mode": "Tenth",
+      "time": {
+        "type": "None"
+      },
+      "average": {
+        "type": "Average",
+        "number_of_shots": 40
+      },
+      "exit_type": "Always"
+    },
+    {
+      "id": "match",
+      "name": "Match",
+      "has_trial_corner": false,
+      "main_part": true,
       "enable_reset_to_new_target": true,
       "series_length": 10,
       "number_of_shots": 40,

@@ -51,7 +51,7 @@ pub struct DSCManager {
     get_from_device_rx: mpsc::Receiver<Action>,
 
     shot_provider_state: ShotProviderState,
-    config: Config,
+    pub config: Config,
 }
 
 impl DSCManager {
@@ -133,40 +133,9 @@ impl DSCManager {
 
 
 
-
-
-    pub fn new_target(&mut self) {
-        println!("new_target");
-    }
-    pub fn set_disciplin(&mut self, discipline: Discipline) {
-        self.start_shot_provider(discipline.clone());
-        self.session = Session::new(self.config.line.clone(), discipline);
-    }
-    // pub fn set_user(&mut self, user: User) {
-    //     self.session.user = user;
-    //     self.update_sessions();
-    // }
-    // pub fn set_team(&mut self, team: Team) {
-    //     self.session.team = team;
-    //     self.update_sessions();
-    // }
-    // pub fn set_club(&mut self, club: Club) {
-    //     self.session.club = club;
-    //     self.update_sessions();
-    // }
-    // pub fn set_part(&mut self, part: PartType) {
-    //
-    // }
-    // pub fn set_active_part(&mut self, index: ActiveSession) {
-    //
-    // }
-
-
-
-
-
-
     /// Start given shot provider, if we still have a running one, we stop it.
+    //
+    // discipline:      new discipline
     fn start_shot_provider(&mut self, discipline: Discipline) {
         self.stop_shot_provider();
 
@@ -209,6 +178,104 @@ impl DSCManager {
         }
         self.shot_provider_state = ShotProviderState::NotRunning;
     }
+}
 
 
+
+
+
+pub trait UpdateManager {
+
+    // Set a new discipline
+    // Stops/ Start a new shot provider and inits a new session with the given discipline.
+    //
+    // discipline:      discipline to use
+    fn set_disciplin(&mut self, discipline: Discipline);
+
+    // Set a new discipline by name
+    // Will search the config for a discipline with given name, if we have one, we set it as the
+    // current discipline by calling set_disciplin.
+    //
+    // discipline_id:   id of the discipline (the filename from the config, without suffix)
+    fn set_disciplin_by_name(&mut self, discipline_id: &str);
+
+
+
+    // Set new target
+    // If allowed in the current discipline part, we add a new part to the session of the same
+    // type as the current one.
+    fn new_target(&mut self);
+
+
+
+    // Update the user of the current session
+    //
+    // user:    new user
+    // fn set_user(&mut self, user: User);
+
+    // Update the team of the current session
+    //
+    // team:    new team
+    // fn set_team(&mut self, team: Team);
+
+    // Update the club of the current session
+    //
+    // club:    new club
+    // fn set_club(&mut self, club: Club);
+
+
+
+    // Change to a different part, which has to be in the current discipline parts.
+    //
+    // part:    PartType string of the part we want to change to
+    fn set_part(&mut self, part: PartType);
+
+    // Change the active part, index has to be in the range of the sessions parts
+    //
+    // index:   Index of the part to change to
+    fn set_active_part(&mut self, index: ActivePart);
+}
+
+impl UpdateManager for DSCManager {
+
+    fn set_disciplin(&mut self, discipline: Discipline) {
+        self.start_shot_provider(discipline.clone());
+        self.session = Session::new(self.config.line.clone(), discipline);
+    }
+
+    fn set_disciplin_by_name(&mut self, discipline_id: &str) {
+        match self.config.get_discipline(discipline_id) {
+            Some(discipline) => self.set_disciplin(discipline.clone()),
+            None => {},
+        }
+    }
+
+
+
+    fn new_target(&mut self) {
+        println!("new_target");
+    }
+
+
+
+    // fn set_user(&mut self, user: User) {
+    //     self.session.user = user;
+    //     self.update_sessions();
+    // }
+    // fn set_team(&mut self, team: Team) {
+    //     self.session.team = team;
+    //     self.update_sessions();
+    // }
+    // fn set_club(&mut self, club: Club) {
+    //     self.session.club = club;
+    //     self.update_sessions();
+    // }
+
+
+    fn set_part(&mut self, part: PartType) {
+        println!("set_part {:?}", part);
+    }
+    fn set_active_part(&mut self, index: ActivePart) {
+        println!("set_active_part {:?}", index);
+    }
 }

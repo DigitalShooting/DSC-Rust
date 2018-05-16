@@ -6,7 +6,7 @@ use discipline::*;
 
 
 /// The index of the currently active session
-pub type ActiveSession = usize;
+pub type ActivePart = usize;
 
 
 /// Main data struct, contains:
@@ -17,7 +17,7 @@ pub type ActiveSession = usize;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
     pub parts: Vec<Part>,
-    active_part: ActiveSession,
+    active_part: ActivePart,
     pub discipline: Discipline,
     pub info: Info,
     sum: Counter,

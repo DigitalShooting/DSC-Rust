@@ -34,8 +34,10 @@ use std::path::{Path};
 
 
 fn main() {
-    let config = Config::new(Path::new("./config/")).unwrap();
-    start_dsc(config);
+    match Config::new(Path::new("./config/")) {
+        Ok(config) => start_dsc(config),
+        Err(err) => println!("Error in config: {}", err),
+    }
 }
 
 

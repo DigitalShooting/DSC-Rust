@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 use std::io::Error as IOError;
 use serde_json::Error as JSONError;
+use std::path::PathBuf;
 
 use discipline::DisciplineError;
 
@@ -10,25 +11,39 @@ use discipline::DisciplineError;
 #[derive(Debug)]
 pub enum Error {
     DisciplineTargetNotFound(DisciplineError),
+    DefaultDisciplineNotFound,
     FileNotFound(IOError),
-    JSONParsingError(JSONError),
+    JSONParsing(JSONError),
+    DisciplineParsing(PathBuf, Box<Error>),
+    TargetParsing(PathBuf, Box<Error>),
 }
 
 impl error::Error for Error {
     fn description(&self) -> &str {
         match self {
-            // DSCError::DisciplineTargetNotFound { target_name } => "Target not found",
-            Error::DisciplineTargetNotFound(err) => "Target not found",
-            Error::FileNotFound(err) => "File not found",
-            Error::JSONParsingError(err) => "Error parsing JSON file",
+            Error::DisciplineTargetNotFound(_err) =>
+                "Target not found",
+            Error::DefaultDisciplineNotFound =>
+                "Default discipline was not found",
+            Error::FileNotFound(_err) =>
+                "File not found",
+            Error::JSONParsing(_err) =>
+                "Error parsing JSON file",
+            Error::DisciplineParsing(_, _) =>
+                "Error parsing discipline json file",
+            Error::TargetParsing(_, _) =>
+                "Error parsing target json file",
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             Error::DisciplineTargetNotFound(ref e) => Some(e),
+            Error::DefaultDisciplineNotFound => None,
             Error::FileNotFound(ref e) => Some(e),
-            Error::JSONParsingError(ref e) => Some(e),
+            Error::JSONParsing(ref e) => Some(e),
+            Error::DisciplineParsing(_, ref e) => Some(e),
+            Error::TargetParsing(_, ref e) => Some(e),
         }
     }
 }
@@ -36,9 +51,18 @@ impl error::Error for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::DisciplineTargetNotFound(err) => write!(f, "Target for Discipline not found: {}", err),
-            Error::FileNotFound(err) => write!(f, "File not found: {}", err),
-            Error::JSONParsingError(err) => write!(f, "Error parsing JSON file {}", err),
+            Error::DisciplineTargetNotFound(_err) =>
+                write!(f, "Target for Discipline not found"),
+            Error::DefaultDisciplineNotFound =>
+                write!(f, "Default discipline was not found"),
+            Error::FileNotFound(err) =>
+                write!(f, "File not found: {}", err),
+            Error::JSONParsing(err) =>
+                write!(f, "Error parsing JSON file: {}", err),
+            Error::DisciplineParsing(path, err) =>
+                write!(f, "Error parsing discipline json at path {:?}: {}", path, err),
+            Error::TargetParsing(path, err) =>
+                write!(f, "Error parsing target json at path {:?}: {}", path, err),
         }
 
     }
@@ -52,7 +76,7 @@ impl From<IOError> for Error {
 
 impl From<JSONError> for Error {
     fn from(err: JSONError) -> Error {
-        Error::JSONParsingError(err)
+        Error::JSONParsing(err)
     }
 }
 

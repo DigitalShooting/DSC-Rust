@@ -3,186 +3,104 @@
   "rings": [
     {
       "value": 10,
-      "width": 0.5,
-      "color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "width": 11.5,
+      "color": {"hex": "black","alpha": 1},
       "has_text": false,
-      "text_color": {
-        "hex": "ffffff",
-        "alpha": 1
-      },
+      "text_color": {"hex": "white","alpha": 1},
       "zoom": 4,
-      "hit_color": {
-        "hex": "red",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "red","alpha": 1}
     },
     {
       "value": 9,
-      "width": 5.5,
-      "color": {
-        "hex": "#000000",
-        "alpha": 1
-      },
-      "has_text": false,
-      "text_color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "width": 27.5,
+      "color": {"hex": "black","alpha": 1},
+      "has_text": true,
+      "text_color": {"hex": "white","alpha": 1},
       "zoom": 3,
-      "hit_color": {
-        "hex": "green",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "green","alpha": 1}
     },
     {
       "value": 8,
-      "width": 10.5,
-      "color": {
-        "hex": "#000000",
-        "alpha": 1
-      },
+      "width": 43.5,
+      "color": {"hex": "black","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "text_color": {"hex": "white","alpha": 1},
       "zoom": 2.7,
-      "hit_color": {
-        "hex": "yellow",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "yellow","alpha": 1}
     },
     {
       "value": 7,
-      "width": 15.5,
-      "color": {
-        "hex": "#000000",
-        "alpha": 1
-      },
+      "width": 59.5,
+      "color": {"hex": "black","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "text_color": {"hex": "white","alpha": 1},
       "zoom": 2,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "#00bffF","alpha": 1}
     },
     {
       "value": 6,
-      "width": 20.5,
-      "color": {
-        "hex": "000000",
-        "alpha": 1
-      },
+      "width": 75.5,
+      "color": {"hex": "white","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "text_color": {"hex": "black","alpha": 1},
       "zoom": 1.5,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "#00bffF","alpha": 1}
     },
     {
       "value": 5,
-      "width": 25.5,
-      "color": {
-        "hex": "#000000",
-        "alpha": 1
-      },
+      "width": 91.5,
+      "color": {"hex": "white","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "text_color": {"hex": "black","alpha": 1},
       "zoom": 1,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "#00bffF","alpha": 1}
     },
     {
       "value": 4,
-      "width": 30.5,
-      "color": {
-        "hex": "#000000",
-        "alpha": 1
-      },
+      "width": 107.5,
+      "color": {"hex": "white","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "#ffffff",
-        "alpha": 1
-      },
+      "text_color": {"hex": "black","alpha": 1},
       "zoom": 1,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
+      "hit_color": {"hex": "#00bffF","alpha": 1
       }
     },
     {
       "value": 3,
-      "width": 35.5,
-      "color": {
-        "hex": "white",
-        "alpha": 1
-      },
+      "width": 123.5,
+      "color": {"hex": "white","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "black",
-        "alpha": 1
-      },
+      "text_color": {"hex": "black","alpha": 1},
       "zoom": 1,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "#00bffF","alpha": 1}
     },
     {
       "value": 2,
-      "width": 40.5,
-      "color": {
-        "hex": "white",
-        "alpha": 1
-      },
+      "width": 139.5,
+      "color": {"hex": "white","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "black",
-        "alpha": 1
-      },
+      "text_color": {"hex": "black","alpha": 1},
       "zoom": 1,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "#00bffF","alpha": 1}
     },
     {
       "value": 1,
-      "width": 45.5,
-      "color": {
-        "hex": "white",
-        "alpha": 1
-      },
+      "width": 155.5,
+      "color": {"hex": "white","alpha": 1},
       "has_text": true,
-      "text_color": {
-        "hex": "black",
-        "alpha": 1
-      },
+      "text_color": {"hex": "black","alpha": 1},
       "zoom": 1,
-      "hit_color": {
-        "hex": "#00bffF",
-        "alpha": 1
-      }
+      "hit_color": {"hex": "#00bffF","alpha": 1}
     }
   ],
-  "rings_draw_only": [],
+  "rings_draw_only": [
+    {
+      "width": 5,
+      "color": {"hex": "black","alpha": 1},
+      "has_text": true,
+      "text_color": {"hex": "white","alpha": 1}
+    }
+  ],
   "default_hit_color": {
     "hex": "#000000",
     "alpha": 1

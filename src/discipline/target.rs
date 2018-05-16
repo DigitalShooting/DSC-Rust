@@ -5,7 +5,7 @@
 pub struct Target {
     pub title: String,
     pub rings: Vec<Ring>,
-    pub rings_draw_only: Vec<Ring>,
+    pub rings_draw_only: Vec<RingDrawOnly>,
     pub default_hit_color: WebColor,
     pub default_zoom: Zoom,
     pub min_zoom: Zoom,
@@ -27,6 +27,14 @@ pub struct Ring {
     pub text_color: WebColor,
     pub zoom: Zoom,
     pub hit_color: WebColor,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RingDrawOnly {
+    pub width:  f64,
+    pub color: WebColor,
+    pub has_text: bool,
+    pub text_color: WebColor,
 }
 
 

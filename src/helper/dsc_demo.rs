@@ -124,7 +124,7 @@ pub fn lg_discipline() -> Discipline {
                 main_part: false,
                 enable_reset_to_new_target: true,
                 series_length: 10,
-                number_of_shots: 40,
+                number_of_shots: Some(40),
                 show_infos: true,
                 count_mode: CountMode::Tenth,
                 time: Time::None,
