@@ -173,7 +173,10 @@ fn start_broadcast_thread(client_senders: ClientSenders, manager: DSCManagerMute
             if let Ok(msg) = on_update_rx.try_recv() {
                 match msg {
                     Update::Data(message) => broadcast_to_all(client_senders.clone(), message),
-                    Update::Error(err) => println!("{}", err),
+                    Update::Error(err) => {
+                        print!("AAA {}", err);
+                        broadcast_to_all(client_senders.clone(), err)
+                    },
                 }
             }
             thread::sleep(Duration::from_millis(100));

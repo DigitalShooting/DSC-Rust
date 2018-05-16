@@ -60,7 +60,6 @@ impl Shot {
     /// y:                  y coordinate in 1/1000 mm
     /// target:             Target to use to calculate ring
     /// count_mode          CountMode to use
-    /// TODO Custom type maybe for tenth/ no tenth handling?
     pub fn from_cartesian_coordinates(x: i32, y: i32, target: &Target, count_mode: &CountMode) -> Shot {
         let x_f64 = x as f64;
         let y_f64 = y as f64;

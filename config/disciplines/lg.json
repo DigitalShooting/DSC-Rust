@@ -2,9 +2,10 @@
   "id": "lg_demo",
   "title": "LG Demo",
   "interface": {
-    "Demo": {
-      "interval": 1000,
-      "max_shots": 40
+    "ESA": {
+      "port": "/dev/ttyS0",
+      "on_part_band": 2,
+      "on_shot_band": 1
     }
   },
   "time": {

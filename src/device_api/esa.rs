@@ -319,7 +319,10 @@ impl API for ESA {
                 Err(err) => {
 
                     println!("init error {:?}", err);
-                    // tx.send(Action:Error("err".to_string()));
+                    match tx.send(Action::Error("Cant open serial port".to_string())) {
+                        Ok(_) => {},
+                        Err(err) => println!("{}", err),
+                    }
                 }
             }
         });

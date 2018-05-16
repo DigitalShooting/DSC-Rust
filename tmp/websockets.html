@@ -24,10 +24,10 @@
         });
       }
 
-      function set_disciplin() {
+      function set_disciplin(id) {
         send({
           "type": "SetDisciplin",
-          "name": "test"
+          "name": id,
         });
       }
 
@@ -37,6 +37,8 @@
     </script>
       <p id="received"></p>
       <button onclick="new_target()">new_target</button>
-      <button onclick="set_disciplin()">set_disciplin</button>
+      <button onclick="set_disciplin('lg_demo')">set_disciplin lg_demo</button>
+      <button onclick="set_disciplin('lp_demo')">set_disciplin lp_demo</button>
+      <button onclick="set_disciplin('lg')">set_disciplin lg</button>
   </body>
 </html>

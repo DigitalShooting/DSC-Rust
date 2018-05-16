@@ -56,7 +56,6 @@ pub struct DSCManager {
 
 impl DSCManager {
     pub fn new_with_default(config: Config) -> (DSCManagerMutex, DSCManagerThread) {
-        // TODO use default
         let discipline = config.default_discipline.clone();
         let session = Session::new(config.line.clone(), discipline);
 
@@ -126,7 +125,18 @@ impl DSCManager {
                     }
                     None => println!("can no add shot, active_discipline_part nil"),
                 },
-                Action::Error(err) => println!("Error {:?}", err),
+                Action::Error(err) => {
+                    println!("Error from device_api {:?}", err);
+
+                    // TODO send error stuct
+                    // if let Some(ref on_update_tx) = self.on_update_tx {
+                    //     match on_update_tx.send(Update::Error(format!("{}", err))) {
+                    //         Ok(_) => {},
+                    //         Err(err) => println!("{}", err),
+                    //     }
+                    // }
+
+                },
             }
         }
     }
@@ -239,14 +249,16 @@ pub trait UpdateManager {
 impl UpdateManager for DSCManager {
 
     fn set_disciplin(&mut self, discipline: Discipline) {
+        println!("Set discipline {:?}", discipline.id);
         self.start_shot_provider(discipline.clone());
         self.session = Session::new(self.config.line.clone(), discipline);
+        self.update_sessions();
     }
 
     fn set_disciplin_by_name(&mut self, discipline_id: &str) {
         match self.config.get_discipline(discipline_id) {
             Some(discipline) => self.set_disciplin(discipline.clone()),
-            None => {},
+            None => println!("Discipline to set not found: {}", discipline_id),
         }
     }
 
@@ -254,6 +266,7 @@ impl UpdateManager for DSCManager {
 
     fn new_target(&mut self) {
         println!("new_target");
+        self.update_sessions();
     }
 
 
@@ -274,8 +287,10 @@ impl UpdateManager for DSCManager {
 
     fn set_part(&mut self, part: PartType) {
         println!("set_part {:?}", part);
+        self.update_sessions();
     }
     fn set_active_part(&mut self, index: ActivePart) {
         println!("set_active_part {:?}", index);
+        self.update_sessions();
     }
 }
