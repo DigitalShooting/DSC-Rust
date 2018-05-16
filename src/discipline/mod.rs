@@ -1,11 +1,13 @@
 pub mod discipline;
+pub mod error;
 pub mod part;
 pub mod interface;
 pub mod target;
 pub mod time;
 
-pub use discipline::interface::Interface;
-pub use discipline::discipline::Discipline;
-pub use discipline::part::{DisciplinePart, PartAverage, PartExitType};
-pub use discipline::target::{Target, Zoom, Ring, WebColor};
-pub use discipline::time::Time;
+pub use self::interface::Interface;
+pub use self::discipline::{Discipline, DisciplineConfig};
+pub use self::error::Error as DisciplineError;
+pub use self::part::{DisciplinePart, PartAverage, PartExitType};
+pub use self::target::{Target, Zoom, Ring, WebColor};
+pub use self::time::Time;

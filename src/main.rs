@@ -25,31 +25,24 @@ mod device_api;
 mod web;
 
 use config::Config;
-use dsc_manager::*;
-use session::Line;
+use dsc_manager::DSCManager;
 use web::*;
 
+use std::path::{Path};
 
 
 
 
 fn main() {
-    let config = Config::new("./config/".to_string());
-    println!("{:?}", config);
-
-    start_dsc();
+    let config = Config::new(Path::new("./config/")).unwrap();
+    start_dsc(config);
 }
 
 
 
-fn start_dsc() {
+fn start_dsc(config: Config) {
     // Init manager
-    let line = Line {
-        id: "01".to_string(),
-        name: "Linie 1".to_string(),
-        short_name: "1".to_string(),
-    };
-    let (manager, manager_thread) = DSCManager::new_with_default(line);
+    let (manager, manager_thread) = DSCManager::new_with_default(config);
 
     // Start websocket server
     let config = socket::Config {

@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use discipline::interface::Interface;
 use discipline::target::Target;
 use discipline::part::DisciplinePart;
 use discipline::time::Time;
+use discipline::error::Error as DisciplineError;
 
 
 
@@ -23,5 +26,34 @@ impl Discipline {
             }
         }
         return None;
+    }
+}
+
+
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DisciplineConfig {
+    id: String,
+    title: String,
+    interface: Interface,
+    time: Time,
+    target_name: String,
+    parts: Vec<DisciplinePart>,
+}
+
+impl DisciplineConfig {
+    pub fn to_discipline(config: DisciplineConfig, targets: &HashMap<String, Target>) -> Result<Discipline, DisciplineError> {
+        match targets.get(&config.target_name) {
+            Some(target) => Ok(Discipline {
+                id: config.id,
+                title: config.title,
+                interface: config.interface,
+                time: config.time,
+                target: target.clone(),
+                parts: config.parts,
+            }),
+            None => Err(DisciplineError::TargetNotFound),
+        }
     }
 }

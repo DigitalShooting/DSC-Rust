@@ -3,12 +3,11 @@ use std::thread;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
-use helper;
-
 use session::*;
 use discipline::*;
 use device_api;
 use device_api::api::{API, Action, DeviceCommand};
+use config::Config;
 
 use serde_json;
 
@@ -52,14 +51,14 @@ pub struct DSCManager {
     get_from_device_rx: mpsc::Receiver<Action>,
 
     shot_provider_state: ShotProviderState,
-    line: Line,
+    config: Config,
 }
 
 impl DSCManager {
-    pub fn new_with_default(line: Line) -> (DSCManagerMutex, DSCManagerThread) {
+    pub fn new_with_default(config: Config) -> (DSCManagerMutex, DSCManagerThread) {
         // TODO use default
-        let discipline = helper::dsc_demo::lg_discipline();
-        let session = Session::new(line.clone(), discipline);
+        let discipline = config.default_discipline.clone();
+        let session = Session::new(config.line.clone(), discipline);
 
         let (get_from_device_tx, get_from_device_rx) = mpsc::channel::<Action>();
         let manager = DSCManager {
@@ -67,7 +66,7 @@ impl DSCManager {
             on_update_tx: None,
             get_from_device_tx, get_from_device_rx,
             shot_provider_state: ShotProviderState::NotRunning,
-            line,
+            config,
         };
 
         let manager_mutex = Arc::new(Mutex::new(manager));
@@ -81,9 +80,10 @@ impl DSCManager {
     /// manager_mutex:  DSCMangerMutex, will be locked befor every access in the run loop
     pub fn start(manager: DSCManagerMutex) -> DSCManagerThread {
         // Start default discipline
-        // TODO read default from config?
-        let discipline = manager.lock().unwrap().session.discipline.clone();
-        manager.lock().unwrap().start_shot_provider(discipline);
+        if let Ok(mut manager) = manager.lock() {
+            let discipline = manager.session.discipline.clone();
+            manager.start_shot_provider(discipline)
+        }
 
         // Start and return main manager worker thread.
         // This will check the device channel for new shots, adds them to the session and send an
@@ -140,7 +140,7 @@ impl DSCManager {
     }
     pub fn set_disciplin(&mut self, discipline: Discipline) {
         self.start_shot_provider(discipline.clone());
-        self.session = Session::new(self.line.clone(), discipline);
+        self.session = Session::new(self.config.line.clone(), discipline);
     }
     // pub fn set_user(&mut self, user: User) {
     //     self.session.user = user;
