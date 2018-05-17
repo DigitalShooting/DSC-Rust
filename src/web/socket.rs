@@ -9,22 +9,38 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 use std::time::Duration;
+use std::error::Error as StdError;
 
 use dsc_manager::*;
+use session::{Session, Update as SessionUpdate};
+use config::Config as DSCConfig;
+
 
 
 type ClientSenders = Arc<Mutex<Vec<mpsc::Sender<String>>>>;
 
+// TODO move to main config
 pub struct Config {
     pub address_port: String,
 }
 
+
+/// Base type for client -> server websocket packages
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum RequestType {
     NewTarget,
-    SetDisciplin { name: String },
+    SetDisciplin {name: String},
     Shutdown,
+}
+
+/// Base type for server -> client websocket packages
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum SendType {
+    Session {session: Session},
+    Config {config: DSCConfig},
+    Error {error: String}
 }
 
 
@@ -43,14 +59,8 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
 
     let client_senders: ClientSenders = Arc::new(Mutex::new(vec![]));
 
-
-
     // dispatcher thread
     start_broadcast_thread(client_senders.clone(), manager.clone());
-
-
-
-
 
     // client threads
     for request in server.filter_map(Result::ok) {
@@ -128,7 +138,7 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
                                         match request_type {
                                             RequestType::NewTarget => {
                                                 println!("RequestType::NewTarget");
-                                                manager_clone.lock().unwrap().new_target();
+                                                manager_clone.lock().unwrap().new_target(false);
                                             },
                                             RequestType::SetDisciplin{ name } => {
                                                 manager_clone.lock().unwrap().set_disciplin_by_name(&name);
@@ -166,17 +176,14 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) {
 /// client_senders:     List of clients
 /// manager:            DSCManager, to set update channel
 fn start_broadcast_thread(client_senders: ClientSenders, manager: DSCManagerMutex) {
-    let (on_update_tx, on_update_rx) = mpsc::channel::<Update>();
+    let (on_update_tx, on_update_rx) = mpsc::channel::<SendType>();
     manager.lock().unwrap().on_update_tx = Some(on_update_tx);
     thread::spawn(move || {
         loop {
             if let Ok(msg) = on_update_rx.try_recv() {
-                match msg {
-                    Update::Data(message) => broadcast_to_all(client_senders.clone(), message),
-                    Update::Error(err) => {
-                        print!("AAA {}", err);
-                        broadcast_to_all(client_senders.clone(), err)
-                    },
+                match serde_json::to_string(&msg) {
+                    Ok(text) => broadcast_to_all(client_senders.clone(), text),
+                    Err(err) => println!("{}", err),
                 }
             }
             thread::sleep(Duration::from_millis(100));

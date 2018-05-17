@@ -5,7 +5,7 @@ use session::CountMode;
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Series {
     pub shots: Vec<Shot>,
     sum: Counter,

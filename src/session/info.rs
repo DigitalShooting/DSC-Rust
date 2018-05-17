@@ -1,6 +1,6 @@
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Info {
     user: User,
     club: Club,
@@ -23,7 +23,7 @@ impl Info {
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct User {
     first_name: String,
     last_name: String,
@@ -50,7 +50,7 @@ impl User {
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Club {
     name: String,
     id: String,
@@ -67,7 +67,7 @@ impl Club {
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Team {
     name: String,
     id: String,

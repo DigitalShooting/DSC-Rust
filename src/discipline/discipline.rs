@@ -19,6 +19,7 @@ pub struct Discipline {
 }
 
 impl Discipline {
+    // TODO maybe use reference for id
     pub fn get_part_from_type(&self, id: String) -> Option<DisciplinePart> {
         for part in self.parts.clone() {
             if part.id == id {

@@ -3,11 +3,12 @@ use std::thread;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
-use session::*;
+use session::{Session, Update as UpdateSession, PartType, ActivePart, AddShotRaw};
 use discipline::*;
 use device_api;
 use device_api::api::{API, Action, DeviceCommand};
 use config::Config;
+use web::socket::SendType;
 
 use serde_json;
 
@@ -17,10 +18,10 @@ pub type DSCManagerThread = thread::JoinHandle<()>;
 
 
 /// Used to send status updates from the manager to the client (socket api)
-pub enum Update { // EventResponse?
-    Data(String),
-    Error(String),
-}
+// pub enum Update { // EventResponse?
+//     Data(String),
+//     Error(String),
+// }
 
 /// Indicated the current state of the current shot provider
 enum ShotProviderState {
@@ -43,7 +44,7 @@ pub struct DSCManager {
     pub session: Session,
 
     // Channel for sending changes to the socket api
-    pub on_update_tx: Option<mpsc::Sender<Update>>,
+    pub on_update_tx: Option<mpsc::Sender<SendType>>,
 
     // The shot_provider writes to this channel, we read it here
     // used for new shot, error form device, etc
@@ -99,14 +100,15 @@ impl DSCManager {
 
     // send current session data as json to the client (socket)
     fn update_sessions(&mut self) {
+        // TODO ref
+        let session = self.session.clone();
+        self.send_message_to_observer(SendType::Session { session })
+    }
+
+    fn send_message_to_observer(&mut self, message: SendType) {
         if let Some(ref on_update_tx) = self.on_update_tx {
-            match serde_json::to_string(&self.session) {
-                Ok(text) => {
-                    match on_update_tx.send(Update::Data(text)) {
-                        Ok(_) => {},
-                        Err(err) => println!("{}", err),
-                    }
-                }
+            match on_update_tx.send(message) {
+                Ok(_) => {},
                 Err(err) => println!("{}", err),
             }
         }
@@ -127,15 +129,9 @@ impl DSCManager {
                 },
                 Action::Error(err) => {
                     println!("Error from device_api {:?}", err);
-
-                    // TODO send error stuct
-                    // if let Some(ref on_update_tx) = self.on_update_tx {
-                    //     match on_update_tx.send(Update::Error(format!("{}", err))) {
-                    //         Ok(_) => {},
-                    //         Err(err) => println!("{}", err),
-                    //     }
-                    // }
-
+                    self.send_message_to_observer(SendType::Error {
+                        error: format!("{}", err),
+                    })
                 },
             }
         }
@@ -208,42 +204,6 @@ pub trait UpdateManager {
     //
     // discipline_id:   id of the discipline (the filename from the config, without suffix)
     fn set_disciplin_by_name(&mut self, discipline_id: &str);
-
-
-
-    // Set new target
-    // If allowed in the current discipline part, we add a new part to the session of the same
-    // type as the current one.
-    fn new_target(&mut self);
-
-
-
-    // Update the user of the current session
-    //
-    // user:    new user
-    // fn set_user(&mut self, user: User);
-
-    // Update the team of the current session
-    //
-    // team:    new team
-    // fn set_team(&mut self, team: Team);
-
-    // Update the club of the current session
-    //
-    // club:    new club
-    // fn set_club(&mut self, club: Club);
-
-
-
-    // Change to a different part, which has to be in the current discipline parts.
-    //
-    // part:    PartType string of the part we want to change to
-    fn set_part(&mut self, part: PartType);
-
-    // Change the active part, index has to be in the range of the sessions parts
-    //
-    // index:   Index of the part to change to
-    fn set_active_part(&mut self, index: ActivePart);
 }
 
 impl UpdateManager for DSCManager {
@@ -262,10 +222,13 @@ impl UpdateManager for DSCManager {
         }
     }
 
+}
 
+impl UpdateSession for DSCManager {
 
-    fn new_target(&mut self) {
+    fn new_target(&mut self, force: bool) {
         println!("new_target");
+        self.session.new_target(force);
         self.update_sessions();
     }
 
@@ -285,12 +248,15 @@ impl UpdateManager for DSCManager {
     // }
 
 
-    fn set_part(&mut self, part: PartType) {
-        println!("set_part {:?}", part);
+
+    fn set_part(&mut self, part_type: PartType, force: bool) {
+        println!("set_part {:?}", part_type);
+        self.session.set_part(part_type, force);
         self.update_sessions();
     }
-    fn set_active_part(&mut self, index: ActivePart) {
+    fn set_active_part(&mut self, index: ActivePart, force: bool) {
         println!("set_active_part {:?}", index);
+        self.session.set_active_part(index, force);
         self.update_sessions();
     }
 }

@@ -346,7 +346,10 @@ struct PaperMoveChecker { }
 impl PaperMoveChecker {
     // Calls the paper move server and asks if the paper has been moved recently
     // TODO IP/ Config for paper move server
+    //
+    // return:  true if Ok, false, if no movement
     fn ask_for_paper_move() -> bool {
+        // TODO
         return true;
     }
 

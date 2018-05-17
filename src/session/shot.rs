@@ -28,7 +28,7 @@ impl ShotRaw {
 
 
 /// Represents a single shot, with all its metadata.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Shot {
     pub teiler: f64,
     pub angle: f64,

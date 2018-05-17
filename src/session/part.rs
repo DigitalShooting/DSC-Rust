@@ -6,7 +6,7 @@ use discipline::*;
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Part {
     pub series: Vec<Series>,
     pub part_type: PartType,
@@ -18,12 +18,12 @@ pub type PartType = String;
 
 impl Part {
     /// New empty part
-    pub fn new() -> Part {
+    pub fn new(part_type: PartType) -> Part {
         Part {
             series: vec![
                 Series::new(),
             ],
-            part_type: String::from("probe"),
+            part_type,
             sum: Counter::empty(),
             number_of_shots: 0,
         }

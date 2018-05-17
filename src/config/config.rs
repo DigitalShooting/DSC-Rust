@@ -14,8 +14,7 @@ use config::error::Error as ConfigError;
 type Result<T> = std::result::Result<T, ConfigError>;
 
 
-
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub line: Line,
     pub disciplines: HashMap<String, Discipline>,
