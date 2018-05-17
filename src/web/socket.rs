@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 use std::time::Duration;
-use std::error::Error as StdError;
 
 use dsc_manager::*;
 use session::{Session, Update as SessionUpdate};

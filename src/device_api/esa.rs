@@ -4,7 +4,6 @@ use std::time::Duration;
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 
-use discipline::*;
 use session::ShotRaw;
 use device_api::api::{API, Action, Error as DeviceError, DeviceCommand};
 
@@ -53,14 +52,13 @@ pub struct ESA {
     path: String,
     on_part_band: u8,
     on_shot_band: u8,
-    discipline: Discipline,
 }
 
 impl ESA {
     /// Init new DeviceAPI for ESA.
     /// path:   Path to the serial device connected to the ESA interface.
-    pub fn new(path: String, on_part_band: u8, on_shot_band: u8, discipline: Discipline) -> ESA {
-        ESA { path, on_part_band, on_shot_band, discipline }
+    pub fn new(path: String, on_part_band: u8, on_shot_band: u8) -> ESA {
+        ESA { path, on_part_band, on_shot_band }
     }
 
     /// Configure serial port to requied parameters
@@ -274,7 +272,6 @@ impl API for ESA {
 
         // let rx = self.channel_rx;
         let serial_path = self.path.clone();
-        let discipline = self.discipline.clone();
         let on_part_band = self.on_part_band;
         let on_shot_band = self.on_shot_band;
         thread::spawn(move || {
@@ -362,7 +359,7 @@ impl PaperMoveChecker {
     pub fn check(port: SerialPort, tx: mpsc::Sender<Action>) {
         thread::spawn(move || {
             // Check 3 times if we have any movement
-            for i in 0..3 {
+            for _ in 0..3 {
                 // return and end this thrad if ok
                 if PaperMoveChecker::ask_for_paper_move() { return; }
                 // try to move

@@ -55,7 +55,9 @@ impl Session {
         self.discipline.get_part_from_type(active_part_type)
     }
 
-    // Check if
+    /// Check if the user is allowed to exit the current part. If force is true, we can always exit
+    ///
+    /// force:      allows exit, even if the part does not allow exit
     fn can_exit_part(&self, force: bool) -> bool {
         let current_part_type = self.get_active_part().part_type.clone();
         match self.discipline.get_part_from_type(current_part_type) {
@@ -109,11 +111,11 @@ impl AddShotRaw for Session {
 
 pub trait Update {
 
-    // Set new target
-    // If allowed in the current discipline part, we add a new part to the session of the same
-    // type as the current one.
-    //
-    // force:   Flag if we should check if the discipline allows a part change ot not
+    /// Set new target
+    /// If allowed in the current discipline part, we add a new part to the session of the same
+    /// type as the current one.
+    ///
+    /// force:   Flag if we should check if the discipline allows a part change ot not
     fn new_target(&mut self, force: bool);
 
 
@@ -135,16 +137,16 @@ pub trait Update {
 
 
 
-    // Change to a different part, which has to be in the current discipline parts.
-    //
-    // part:    PartType string of the part we want to change to
-    // force:   Flag if we should check if the discipline allows a part change ot not
+    /// Change to a different part, which has to be in the current discipline parts.
+    ///
+    /// part:    PartType string of the part we want to change to
+    /// force:   Flag if we should check if the discipline allows a part change ot not
     fn set_part(&mut self, part_type: PartType, force: bool);
 
-    // Change the active part, index has to be in the range of the sessions parts
-    //
-    // index:   Index of the part to change to
-    // force:   Flag if we should check if the discipline allows a part change ot not
+    /// Change the active part, index has to be in the range of the sessions parts
+    ///
+    /// index:   Index of the part to change to
+    /// force:   Flag if we should check if the discipline allows a part change ot not
     fn set_active_part(&mut self, index: ActivePart, force: bool);
 }
 
@@ -156,7 +158,8 @@ impl Update for Session {
     }
 
     fn set_part(&mut self, part_type: PartType, force: bool) {
-        if let Some(discipline_part) = self.discipline.get_part_from_type(part_type.clone()) {
+        // Check if we have a discipline part with the given name in the current discipline
+        if let Some(_) = self.discipline.get_part_from_type(part_type.clone()) {
             if self.can_exit_part(force) {
                 self.parts.push(Part::new(part_type));
                 self.active_part = self.parts.len();

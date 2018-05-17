@@ -10,7 +10,6 @@ use device_api::api::{API, Action, DeviceCommand};
 use config::Config;
 use web::socket::SendType;
 
-use serde_json;
 
 
 pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
@@ -56,7 +55,7 @@ pub struct DSCManager {
 }
 
 impl DSCManager {
-    pub fn new_with_default(config: Config) -> (DSCManagerMutex, DSCManagerThread) {
+    pub fn new(config: Config) -> (DSCManagerMutex, DSCManagerThread) {
         let discipline = config.default_discipline.clone();
         let session = Session::new(config.line.clone(), discipline);
 
@@ -77,6 +76,7 @@ impl DSCManager {
 
 
     /// Start the manager thread and return its JoinHandle
+    ///
     /// manager_mutex:  DSCMangerMutex, will be locked befor every access in the run loop
     pub fn start(manager: DSCManagerMutex) -> DSCManagerThread {
         // Start default discipline
@@ -98,13 +98,16 @@ impl DSCManager {
 
 
 
-    // send current session data as json to the client (socket)
+    /// Send current session to the client
     fn update_sessions(&mut self) {
         // TODO ref
         let session = self.session.clone();
         self.send_message_to_observer(SendType::Session { session })
     }
 
+    /// Send given message to on_update channel (e.g. to websocket)
+    ///
+    /// message:    Message to send
     fn send_message_to_observer(&mut self, message: SendType) {
         if let Some(ref on_update_tx) = self.on_update_tx {
             match on_update_tx.send(message) {
@@ -114,18 +117,15 @@ impl DSCManager {
         }
     }
 
-    // Check the get_from_device_rx channel for new messages from the device (e.g. shots).
-    // If we have some, we process them (e.g. add the shot to the session) and send an update to
-    // the observer.
+    /// Check the get_from_device_rx channel for new messages from the device (e.g. shots).
+    /// If we have some, we process them (e.g. add the shot to the session) and send an update to
+    /// the observer.
     fn check_device_channel(&mut self) {
         if let Ok(message) = self.get_from_device_rx.try_recv() {
             match message {
-                Action::NewShot(shot_raw) => match self.session.get_active_discipline_part() {
-                    Some(discipline_part) => {
-                        self.session.add_shot_raw(shot_raw);
-                        self.update_sessions();
-                    }
-                    None => println!("can no add shot, active_discipline_part nil"),
+                Action::NewShot(shot_raw) => {
+                    self.session.add_shot_raw(shot_raw);
+                    self.update_sessions();
                 },
                 Action::Error(err) => {
                     println!("Error from device_api {:?}", err);
@@ -140,8 +140,8 @@ impl DSCManager {
 
 
     /// Start given shot provider, if we still have a running one, we stop it.
-    //
-    // discipline:      new discipline
+    ///
+    /// discipline:      new discipline
     fn start_shot_provider(&mut self, discipline: Discipline) {
         self.stop_shot_provider();
 
@@ -151,10 +151,10 @@ impl DSCManager {
         // used to stop the device or trigger manual update (paper move, etc.)
         let (set_to_device_tx, set_to_device_rx) = mpsc::channel::<DeviceCommand>();
 
-        match discipline.clone().interface {
+        match discipline.interface {
             Interface::ESA { port, on_part_band, on_shot_band } => {
                 let mut shot_provider = device_api::ESA::new(
-                    port, on_part_band, on_shot_band, discipline,
+                    port, on_part_band, on_shot_band,
                 );
                 shot_provider.start(self.get_from_device_tx.clone(), set_to_device_rx);
             },
@@ -192,17 +192,17 @@ impl DSCManager {
 
 pub trait UpdateManager {
 
-    // Set a new discipline
-    // Stops/ Start a new shot provider and inits a new session with the given discipline.
-    //
-    // discipline:      discipline to use
+    /// Set a new discipline
+    /// Stops/ Start a new shot provider and inits a new session with the given discipline.
+    ///
+    /// discipline:      discipline to use
     fn set_disciplin(&mut self, discipline: Discipline);
 
-    // Set a new discipline by name
-    // Will search the config for a discipline with given name, if we have one, we set it as the
-    // current discipline by calling set_disciplin.
-    //
-    // discipline_id:   id of the discipline (the filename from the config, without suffix)
+    /// Set a new discipline by name
+    /// Will search the config for a discipline with given name, if we have one, we set it as the
+    /// current discipline by calling set_disciplin.
+    ///
+    /// discipline_id:   id of the discipline (the filename from the config, without suffix)
     fn set_disciplin_by_name(&mut self, discipline_id: &str);
 }
 

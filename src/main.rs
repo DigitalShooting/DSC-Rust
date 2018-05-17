@@ -44,7 +44,7 @@ fn main() {
 
 fn start_dsc(config: Config) {
     // Init manager
-    let (manager, manager_thread) = DSCManager::new_with_default(config);
+    let (manager, manager_thread) = DSCManager::new(config);
 
     // Start websocket server
     let config = socket::Config {
