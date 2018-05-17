@@ -6,7 +6,7 @@ use byteorder::{BigEndian, ReadBytesExt};
 
 use discipline::*;
 use session::ShotRaw;
-use device_api::api::{API, Action, DeviceCommand};
+use device_api::api::{API, Action, Error as DeviceError, DeviceCommand};
 
 /// We use some c functions to comunicate with the ESA interface, using rust crates just did not
 /// work. I just could not read data from the device.
@@ -222,6 +222,7 @@ impl ESA {
                         let _time = cursor.read_u32::<BigEndian>().unwrap();
                         let x = cursor.read_i32::<BigEndian>().unwrap();
                         let y = cursor.read_i32::<BigEndian>().unwrap();
+
                         return NopResult::Shot(ShotRaw { x, y });
                     }
                     _ => {
@@ -262,8 +263,9 @@ impl ESA {
             }
         }
     }
-
 }
+
+
 
 
 
@@ -292,8 +294,15 @@ impl API for ESA {
                                 ESA::serial_close(port);
                                 break;
                             },
-                            Ok(DeviceCommand::NewPart) => ESA::perform_band(port, on_part_band),
-                            // When we got no message we generate a shot
+
+                            // Move paper and ckeck movement
+                            Ok(DeviceCommand::NewPart) | Ok(DeviceCommand::CheckPaper) => {
+                                // Check if called on setup also, to check paper
+                                ESA::perform_band(port, on_part_band);
+                                PaperMoveChecker::check(port, tx.clone());
+                            },
+
+                            // When we got no message we check for shots
                             Err(TryRecvError::Empty) => {
                                 match ESA::perform_nop(port) {
                                     NopResult::Shot(shot) => {
@@ -302,12 +311,11 @@ impl API for ESA {
                                             Ok(_) => {},
                                             Err(err) => println!("{}", err),
                                         }
+                                        PaperMoveChecker::check(port, tx.clone());
                                     }
-                                    NopResult::Ack => {
-
-                                    }
+                                    NopResult::Ack => { }
                                     NopResult::Err(err) => {
-
+                                        // TODO handle
                                     }
                                 }
 
@@ -317,9 +325,7 @@ impl API for ESA {
                     }
                 },
                 Err(err) => {
-
-                    println!("init error {:?}", err);
-                    match tx.send(Action::Error("Cant open serial port".to_string())) {
+                    match tx.send(Action::Error(DeviceError::InvalidSerialPort)) {
                         Ok(_) => {},
                         Err(err) => println!("{}", err),
                     }
@@ -333,6 +339,36 @@ impl API for ESA {
 
 
 
+
+
+
+struct PaperMoveChecker { }
+impl PaperMoveChecker {
+    // Calls the paper move server and asks if the paper has been moved recently
+    // TODO IP/ Config for paper move server
+    fn ask_for_paper_move() -> bool {
+        return true;
+    }
+
+    // Open thread to check for paper movement
+    // We try 3 times to move the paper, otherwise we send an error on the tx channel
+    //
+    // port:    Serial port, used to perform_band
+    // tx:      Channel to send error message, if any
+    // TODO IP/ Config for paper move server
+    pub fn check(port: SerialPort, tx: mpsc::Sender<Action>) {
+        thread::spawn(move || {
+            // Check 3 times if we have any movement
+            for i in 0..3 {
+                // return and end this thrad if ok
+                if PaperMoveChecker::ask_for_paper_move() { return; }
+                // try to move
+                ESA::perform_band(port, 2_u8);
+            }
+            tx.send(Action::Error(DeviceError::PaperStuck)).unwrap();
+        });
+    }
+}
 
 
 

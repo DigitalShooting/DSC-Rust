@@ -1,4 +1,5 @@
 use std::sync::{mpsc};
+use std::error::Error as StdError;
 
 use session::ShotRaw;
 
@@ -12,6 +13,9 @@ pub enum DeviceCommand {
 
     /// Informs about a change in the part, we use it to move the paper on Haering Devices.
     NewPart,
+
+    /// On ESA devices this will move the paper an checks the movement
+    CheckPaper,
 }
 
 /// Communication channel to Manager object, to inform about new shots and errors.
@@ -20,7 +24,17 @@ pub enum Action {
     NewShot(ShotRaw),
 
     /// Send an error event that occured in the DeviceAPI to the Manager
-    Error(String),
+    // Error(String),
+
+    Error(Error),
+}
+
+
+
+#[derive(Debug)]
+pub enum Error {
+    PaperStuck,
+    InvalidSerialPort,
 }
 
 
