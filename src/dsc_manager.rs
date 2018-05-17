@@ -8,7 +8,7 @@ use discipline::*;
 use device_api;
 use device_api::api::{API, Action, DeviceCommand};
 use config::Config;
-use web::socket::SendType;
+use web::SendType;
 
 
 

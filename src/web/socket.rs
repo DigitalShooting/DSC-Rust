@@ -1,46 +1,14 @@
-// use websocket;
 use websocket::OwnedMessage;
 use websocket::sync::Server;
-
-use serde_json;
-use serde_json::Error;
-
+use serde_json::{self, Error};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 use std::time::Duration;
 
-use dsc_manager::*;
-use session::{Session, Update as SessionUpdate};
-use config::Config as DSCConfig;
-
-
-
-type ClientSenders = Arc<Mutex<Vec<mpsc::Sender<String>>>>;
-
-// TODO move to main config
-pub struct Config {
-    pub address_port: String,
-}
-
-
-/// Base type for client -> server websocket packages
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "type")]
-pub enum RequestType {
-    NewTarget,
-    SetDisciplin {name: String},
-    Shutdown,
-}
-
-/// Base type for server -> client websocket packages
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "type")]
-pub enum SendType {
-    Session {session: Session},
-    Config {config: DSCConfig},
-    Error {error: String}
-}
+use dsc_manager::{DSCManagerMutex, UpdateManager};
+use session::Update as SessionUpdate;
+use web::types::{Config, RequestType, SendType, ClientSenders};
 
 
 

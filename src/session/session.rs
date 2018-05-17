@@ -187,6 +187,7 @@ impl Update for Session {
 mod test {
     use session::shot::*;
     use session::session::*;
+    use session::counter::CountMode;
     use discipline::*;
     use helper;
 

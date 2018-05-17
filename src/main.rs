@@ -29,8 +29,8 @@ mod web;
 
 use config::Config;
 use dsc_manager::DSCManager;
-use web::*;
-
+use web::Config as SocketConfig;
+use web::socket;
 
 
 fn main() {
@@ -47,7 +47,7 @@ fn start_dsc(config: Config) {
     let (manager, manager_thread) = DSCManager::new(config);
 
     // Start websocket server
-    let config = socket::Config {
+    let config = SocketConfig {
         address_port: "0.0.0.0:3008".to_string()
     };
     socket::start_websocket(config, manager);
