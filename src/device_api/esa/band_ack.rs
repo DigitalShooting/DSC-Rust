@@ -6,6 +6,7 @@ use std::str;
 use std::io::Error as IOError;
 use std::str::Utf8Error;
 use std::fmt;
+use std::error;
 
 
 
@@ -26,6 +27,7 @@ enum Answer {
 
 
 
+#[derive(Debug)]
 pub enum Error {
     BandAckError(String),
     ConnectionError(IOError),
@@ -37,6 +39,34 @@ pub enum Error {
 impl From<IOError> for Error { fn from(err: IOError) -> Error { Error::ConnectionError(err) }}
 impl From<JSONError> for Error { fn from(err: JSONError) -> Error { Error::JSONError(err) }}
 impl From<Utf8Error> for Error { fn from(err: Utf8Error) -> Error { Error::DataError(err) }}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        match *self {
+            Error::BandAckError(_) =>
+                "BandAckError",
+            Error::ConnectionError(_) =>
+                "ConnectionError",
+            Error::JSONError(_) =>
+                "JSONError",
+            Error::DataError(_) =>
+                "DataError",
+            Error::NoAnswer =>
+                "NoAnswer",
+            Error::InvalidAddress =>
+                "InvalidAddress",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            Error::ConnectionError(ref e) => Some(e),
+            Error::JSONError(ref e) => Some(e),
+            Error::DataError(ref e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

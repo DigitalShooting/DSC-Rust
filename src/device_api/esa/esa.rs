@@ -54,13 +54,18 @@ pub struct ESA {
     path: String,
     on_part_band: u8,
     on_shot_band: u8,
+    band_ack_server: Option<(String, u8)>,
 }
 
 impl ESA {
     /// Init new DeviceAPI for ESA.
     /// path:   Path to the serial device connected to the ESA interface.
     pub fn new(path: String, on_part_band: u8, on_shot_band: u8) -> ESA {
-        ESA { path, on_part_band, on_shot_band }
+        ESA {
+            path,
+            on_part_band, on_shot_band,
+            band_ack_server: Some(("127.0.0.1:4040".to_string(), 4_u8))
+        }
     }
 
     /// Configure serial port to requied parameters
@@ -277,12 +282,15 @@ impl API for ESA {
         let on_part_band = self.on_part_band;
         let on_shot_band = self.on_shot_band;
 
-        thread::spawn(move || {
-
+        let mut paper_move_checker: Option<Arc<Mutex<PaperMoveChecker>>> = None;
+        if let Some((server, address)) = self.band_ack_server.clone() {
             let paper_move_checker = Arc::new(Mutex::new(
-                PaperMoveChecker::new("127.0.0.1:4040".to_string(), 1_u8)
+                PaperMoveChecker::new(server, address)
             ));
+        }
 
+
+        thread::spawn(move || {
             // Sleep twice the interval time, to make shure the previous process has
             // closed the port.
             thread::sleep(Duration::from_millis(ESA_FETCH_INTERVAL*2));
@@ -303,14 +311,12 @@ impl API for ESA {
                             Ok(DeviceCommand::NewPart) | Ok(DeviceCommand::CheckPaper) => {
                                 // Check if called on setup also, to check paper
                                 ESA::perform_band(port, on_part_band);
-                                PaperMoveChecker::check(paper_move_checker.clone(), port, tx.clone());
+                                if let Some(ref pmc) = paper_move_checker {
+                                    PaperMoveChecker::check(pmc.clone(), port, tx.clone());
+                                }
                             },
 
-                            Ok(DeviceCommand::DisableBandAck) => {
-                                if let Ok(mut pmc) = paper_move_checker.lock() {
-                                    pmc.disable();
-                                }
-                            }
+                            Ok(DeviceCommand::DisableBandAck) => paper_move_checker = None,
 
                             // When we got no message we check for shots
                             Err(TryRecvError::Empty) => {
@@ -321,7 +327,9 @@ impl API for ESA {
                                             Ok(_) => {},
                                             Err(err) => println!("{}", err),
                                         }
-                                        PaperMoveChecker::check(paper_move_checker.clone(), port, tx.clone());
+                                        if let Some(ref pmc) = paper_move_checker {
+                                            PaperMoveChecker::check(pmc.clone(), port, tx.clone());
+                                        }
                                     }
                                     NopResult::Ack => { }
                                     NopResult::Err(err) => {
@@ -351,36 +359,40 @@ impl API for ESA {
 
 
 
+const MIN_PAPER_MOVE_DELTA: u16 = 200;
+const PAPER_STUCK_MOVEMENT: u8 = 2;
 
 pub struct PaperMoveChecker {
     band_ack_server: String,
     address: u8,
     ticks: u16,
-    enabled: bool,
 }
 impl PaperMoveChecker {
 
     fn new(band_ack_server: String, address: u8) -> PaperMoveChecker {
-        PaperMoveChecker{ band_ack_server, address, ticks: 0, enabled: true }
+        PaperMoveChecker{ band_ack_server, address, ticks: 0 }
+    }
+
+    /// Calculate delta between 2 values, if the first value is larger, we use the difference to
+    /// u16_max and add the second value. Otherwise just second - first.
+    fn real_delta(a: u16, b: u16) -> u16 {
+        if a > b {
+            (<u16>::max_value()-a) + b
+        }
+        else {
+            b - a
+        }
     }
 
     // Calls the paper move server and asks if the paper has been moved recently
-    // TODO IP/ Config for paper move server
     //
     // return:  true if Ok, false, if no movement
-    fn ask_for_paper_move(&mut self) -> bool {
+    fn ask_for_paper_move(&mut self) -> Result<bool, band_ack::Error> {
         let old_ticks = self.ticks;
-        match band_ack::ask_for_ticks(&self.band_ack_server, self.address) {
-            Ok(ticks) => self.ticks = ticks,
-            Err(err) => {
-                println!("{}", err);
-                return false
-            }
-        }
-
-        println!("oldTicks: {}, newTicks: {}", old_ticks, self.ticks);
-
-        return true;
+        self.ticks = band_ack::ask_for_ticks(&self.band_ack_server, self.address)?;
+        let delta = PaperMoveChecker::real_delta(old_ticks, self.ticks);
+        println!("oldTicks: {}, newTicks: {}, delta: {}, has_movement: {}", old_ticks, self.ticks, delta, delta > MIN_PAPER_MOVE_DELTA);
+        Ok(delta > MIN_PAPER_MOVE_DELTA)
     }
 
     // Open thread to check for paper movement
@@ -391,26 +403,23 @@ impl PaperMoveChecker {
     // tx:      Channel to send error message, if any
     // TODO IP/ Config for paper move server
     pub fn check(paper_move_checker: Arc<Mutex<PaperMoveChecker>>, port: SerialPort, tx: mpsc::Sender<Action>) {
-        if let Ok(pmc) = paper_move_checker.lock() {
-            if !pmc.enabled { return; }
-        }
         thread::spawn(move || {
             // Check 3 times if we have any movement
             for _ in 0..3 {
                 // return and end this thrad if ok
                 if let Ok(mut pmc) = paper_move_checker.lock() {
-                    if pmc.ask_for_paper_move() { return; }
+                    match pmc.ask_for_paper_move() {
+                        Ok(true) => return,
+                        Ok(false) => {},
+                        Err(err) => tx.send(Action::Error(DeviceError::PaperAck(err))).unwrap(),
+                    }
                 }
 
                 // try to move
-                ESA::perform_band(port, 2_u8);
+                ESA::perform_band(port, PAPER_STUCK_MOVEMENT);
             }
             tx.send(Action::Error(DeviceError::PaperStuck)).unwrap();
         });
-    }
-
-    pub fn disable(&mut self) {
-        self.enabled = false;
     }
 }
 
@@ -422,6 +431,14 @@ impl PaperMoveChecker {
 #[cfg(test)]
 mod test {
     use device_api::esa::*;
+
+    #[test]
+    fn test_real_delta() {
+        assert_eq!(100_u16, PaperMoveChecker::real_delta(100_u16, 200_u16));
+        assert_eq!(0_u16, PaperMoveChecker::real_delta(100_u16, 100_u16));
+        assert_eq!(200_u16, PaperMoveChecker::real_delta(65536_u16, 200_u16));
+        assert_eq!(5735_u16, PaperMoveChecker::real_delta(60000_u16, 200_u16));
+    }
 
     #[test]
     fn test_calculate_checksum() {

@@ -3,6 +3,7 @@ use std::error::Error as StdError;
 use std::fmt;
 
 use session::ShotRaw;
+use device_api::esa::band_ack::Error as PaperAckError;
 
 
 
@@ -54,6 +55,7 @@ impl fmt::Display for Action {
 #[derive(Debug)]
 pub enum Error {
     PaperStuck,
+    PaperAck(PaperAckError),
     InvalidSerialPort,
 }
 
@@ -61,6 +63,7 @@ impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
             Error::PaperStuck => "PaperStuck",
+            Error::PaperAck(_) => "PaperAck",
             Error::InvalidSerialPort => "InvalidSerialPort"
         }
     }
@@ -70,6 +73,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::PaperStuck => write!(f, "PaperStuck"),
+            Error::PaperAck(ref e) => write!(f, "PaperStuck: {}", e),
             Error::InvalidSerialPort => write!(f, "InvalidSerialPort"),
         }
     }
