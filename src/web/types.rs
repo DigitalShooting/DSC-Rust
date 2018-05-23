@@ -29,6 +29,12 @@ pub enum RequestType {
 
     /// Shutdown client
     Shutdown,
+
+    /// Disable automatic paper acks for the current session
+    DisablePaperAck,
+
+    /// Move the paper and check its movement
+    CheckPaper,
 }
 
 /// Base type for server -> client websocket packages

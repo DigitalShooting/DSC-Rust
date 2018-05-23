@@ -4,10 +4,11 @@ use std::time::Duration;
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 use std::sync::{Arc, Mutex};
+use std::fmt;
 
 use session::ShotRaw;
 use device_api::api::{API, Action, Error as DeviceError, DeviceCommand};
-use device_api::esa::band_ack;
+use device_api::esa::paper_ack::PaperMoveChecker;
 
 /// We use some c functions to comunicate with the ESA interface, using rust crates just did not
 /// work. I just could not read data from the device.
@@ -24,9 +25,18 @@ pub type SerialPort = i32;
 
 
 #[derive(Debug)]
-enum SerialError {
+pub enum SerialError {
     OpenError,
 }
+
+impl fmt::Display for SerialError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SerialError::OpenError => write!(f, "OpenError"),
+        }
+    }
+}
+
 
 #[derive(Debug)]
 enum DataError {
@@ -54,7 +64,7 @@ pub struct ESA {
     path: String,
     on_part_band: u8,
     on_shot_band: u8,
-    band_ack_server: Option<(String, u8)>,
+    paper_ack_server: Option<(String, u8)>,
 }
 
 impl ESA {
@@ -64,7 +74,7 @@ impl ESA {
         ESA {
             path,
             on_part_band, on_shot_band,
-            band_ack_server: Some(("127.0.0.1:4040".to_string(), 4_u8))
+            paper_ack_server: Some(("127.0.0.1:4040".to_string(), 4_u8))
         }
     }
 
@@ -182,7 +192,7 @@ impl ESA {
     /// Send paper move command to ESA device.
     /// port:       port to sent it to.
     /// time:       time to move 0-255 (in tenths of a second).
-    fn perform_band(port: SerialPort, time: u8) {
+    pub fn perform_band(port: SerialPort, time: u8) {
       let data = ESA::form_command_data(vec![23, time]);
       println!("perform_band");
       ESA::write(port, data);
@@ -283,10 +293,10 @@ impl API for ESA {
         let on_shot_band = self.on_shot_band;
 
         let mut paper_move_checker: Option<Arc<Mutex<PaperMoveChecker>>> = None;
-        if let Some((server, address)) = self.band_ack_server.clone() {
-            let paper_move_checker = Arc::new(Mutex::new(
+        if let Some((server, address)) = self.paper_ack_server.clone() {
+            paper_move_checker = Some(Arc::new(Mutex::new(
                 PaperMoveChecker::new(server, address)
-            ));
+            )));
         }
 
 
@@ -316,7 +326,7 @@ impl API for ESA {
                                 }
                             },
 
-                            Ok(DeviceCommand::DisableBandAck) => paper_move_checker = None,
+                            Ok(DeviceCommand::DisablePaperAck) => paper_move_checker = None,
 
                             // When we got no message we check for shots
                             Err(TryRecvError::Empty) => {
@@ -343,7 +353,7 @@ impl API for ESA {
                     }
                 },
                 Err(err) => {
-                    match tx.send(Action::Error(DeviceError::InvalidSerialPort)) {
+                    match tx.send(Action::Error(DeviceError::InvalidSerialPort(err))) {
                         Ok(_) => {},
                         Err(err) => println!("{}", err),
                     }
@@ -353,74 +363,6 @@ impl API for ESA {
 
     }
 
-}
-
-
-
-
-
-const MIN_PAPER_MOVE_DELTA: u16 = 200;
-const PAPER_STUCK_MOVEMENT: u8 = 2;
-
-pub struct PaperMoveChecker {
-    band_ack_server: String,
-    address: u8,
-    ticks: u16,
-}
-impl PaperMoveChecker {
-
-    fn new(band_ack_server: String, address: u8) -> PaperMoveChecker {
-        PaperMoveChecker{ band_ack_server, address, ticks: 0 }
-    }
-
-    /// Calculate delta between 2 values, if the first value is larger, we use the difference to
-    /// u16_max and add the second value. Otherwise just second - first.
-    fn real_delta(a: u16, b: u16) -> u16 {
-        if a > b {
-            (<u16>::max_value()-a) + b
-        }
-        else {
-            b - a
-        }
-    }
-
-    // Calls the paper move server and asks if the paper has been moved recently
-    //
-    // return:  true if Ok, false, if no movement
-    fn ask_for_paper_move(&mut self) -> Result<bool, band_ack::Error> {
-        let old_ticks = self.ticks;
-        self.ticks = band_ack::ask_for_ticks(&self.band_ack_server, self.address)?;
-        let delta = PaperMoveChecker::real_delta(old_ticks, self.ticks);
-        println!("oldTicks: {}, newTicks: {}, delta: {}, has_movement: {}", old_ticks, self.ticks, delta, delta > MIN_PAPER_MOVE_DELTA);
-        Ok(delta > MIN_PAPER_MOVE_DELTA)
-    }
-
-    // Open thread to check for paper movement
-    // We try 3 times to move the paper, otherwise we send an error on the tx channel
-    //
-    // paper_move_checker
-    // port:    Serial port, used to perform_band
-    // tx:      Channel to send error message, if any
-    // TODO IP/ Config for paper move server
-    pub fn check(paper_move_checker: Arc<Mutex<PaperMoveChecker>>, port: SerialPort, tx: mpsc::Sender<Action>) {
-        thread::spawn(move || {
-            // Check 3 times if we have any movement
-            for _ in 0..3 {
-                // return and end this thrad if ok
-                if let Ok(mut pmc) = paper_move_checker.lock() {
-                    match pmc.ask_for_paper_move() {
-                        Ok(true) => return,
-                        Ok(false) => {},
-                        Err(err) => tx.send(Action::Error(DeviceError::PaperAck(err))).unwrap(),
-                    }
-                }
-
-                // try to move
-                ESA::perform_band(port, PAPER_STUCK_MOVEMENT);
-            }
-            tx.send(Action::Error(DeviceError::PaperStuck)).unwrap();
-        });
-    }
 }
 
 

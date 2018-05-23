@@ -35,7 +35,7 @@ impl Series {
 
 
 impl AddShot for Series {
-    fn add_shot(&mut self, shot: Shot, discipline: &Discipline, count_mode: &CountMode) {
+    fn add_shot(&mut self, shot: Shot, _discipline: &Discipline, count_mode: &CountMode) {
         // add ring count so series sum
         self.sum.add(shot.ring_count, &count_mode);
         self.number_of_shots += 1;

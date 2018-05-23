@@ -3,7 +3,8 @@ use std::error::Error as StdError;
 use std::fmt;
 
 use session::ShotRaw;
-use device_api::esa::band_ack::Error as PaperAckError;
+use device_api::esa::esa::SerialError;
+use device_api::esa::paper_ack::Error as PaperAckError;
 
 
 
@@ -19,7 +20,8 @@ pub enum DeviceCommand {
     /// On ESA devices this will move the paper an checks the movement
     CheckPaper,
 
-    DisableBandAck,
+    /// Disable band ack checks after each paper movement
+    DisablePaperAck,
 }
 
 /// Communication channel to Manager object, to inform about new shots and errors.
@@ -56,7 +58,7 @@ impl fmt::Display for Action {
 pub enum Error {
     PaperStuck,
     PaperAck(PaperAckError),
-    InvalidSerialPort,
+    InvalidSerialPort(SerialError),
 }
 
 impl StdError for Error {
@@ -64,7 +66,7 @@ impl StdError for Error {
         match *self {
             Error::PaperStuck => "PaperStuck",
             Error::PaperAck(_) => "PaperAck",
-            Error::InvalidSerialPort => "InvalidSerialPort"
+            Error::InvalidSerialPort(_) => "InvalidSerialPort"
         }
     }
 }
@@ -74,7 +76,7 @@ impl fmt::Display for Error {
         match *self {
             Error::PaperStuck => write!(f, "PaperStuck"),
             Error::PaperAck(ref e) => write!(f, "PaperStuck: {}", e),
-            Error::InvalidSerialPort => write!(f, "InvalidSerialPort"),
+            Error::InvalidSerialPort(ref e) => write!(f, "InvalidSerialPort: {}", e),
         }
     }
 }

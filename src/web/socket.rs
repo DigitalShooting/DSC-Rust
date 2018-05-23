@@ -140,6 +140,12 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
                 RequestType::Shutdown => {
                     println!("Not Implemented");
                 },
+                RequestType::DisablePaperAck => {
+                    manager.lock().unwrap().disable_paper_ack();
+                }
+                RequestType::CheckPaper => {
+                    manager.lock().unwrap().check_paper();
+                }
             };
         },
         Err(err) => println!("Parsing Error {:?}", err),

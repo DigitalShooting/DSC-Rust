@@ -31,6 +31,14 @@
         });
       }
 
+      function check_paper(id) {
+        send({"type": "CheckPaper"});
+      }
+
+      function disable_paper_ack(id) {
+        send({"type": "DisablePaperAck"});
+      }
+
       function send(element) {
         socket.send(JSON.stringify(element));
       }
@@ -40,5 +48,7 @@
       <button onclick="set_disciplin('lg_demo')">set_disciplin lg_demo</button>
       <button onclick="set_disciplin('lp_demo')">set_disciplin lp_demo</button>
       <button onclick="set_disciplin('lg')">set_disciplin lg</button>
+      <button onclick="check_paper()">check_paper</button>
+      <button onclick="disable_paper_ack()">disable_paper_ack</button>
   </body>
 </html>

@@ -175,15 +175,34 @@ impl DSCManager {
         match self.shot_provider_state {
             ShotProviderState::Running(ref mut tx) => {
                 println!("Stopping Shot Provider");
-                match tx.send(DeviceCommand::Stop) {
-                    Ok(_) => {},
-                    Err(err) => println!("{}", err),
-                }
+                let _ = tx.send(DeviceCommand::Stop);
             },
             ShotProviderState::NotRunning => {},
         }
         self.shot_provider_state = ShotProviderState::NotRunning;
     }
+
+
+    /// Move the paper and check its movement
+    pub fn check_paper(&mut self) {
+        match self.shot_provider_state {
+            ShotProviderState::Running(ref mut tx) => {
+                let _ = tx.send(DeviceCommand::CheckPaper);
+            },
+            _ => {},
+        }
+    }
+
+    /// Disable automatic paper check for this session
+    pub fn disable_paper_ack(&mut self) {
+        match self.shot_provider_state {
+            ShotProviderState::Running(ref mut tx) => {
+                let _ = tx.send(DeviceCommand::DisablePaperAck);
+            },
+            _ => {},
+        }
+    }
+
 }
 
 
@@ -247,12 +266,17 @@ impl UpdateSession for DSCManager {
     //     self.update_sessions();
     // }
 
-
-
     fn set_part(&mut self, part_type: PartType, force: bool) {
         println!("set_part {:?}", part_type);
         self.session.set_part(part_type, force);
         self.update_sessions();
+
+        match self.shot_provider_state {
+            ShotProviderState::Running(ref mut tx) => {
+                let _ = tx.send(DeviceCommand::NewPart);
+            },
+            _ => {},
+        }
     }
     fn set_active_part(&mut self, index: ActivePart, force: bool) {
         println!("set_active_part {:?}", index);

@@ -52,7 +52,7 @@ fn start_dsc(config: Config) {
     let config = SocketConfig {
         address_port: "0.0.0.0:3008".to_string()
     };
-    socket::start_websocket(config, manager);
+    socket::start_websocket(config, manager).unwrap();
 
     // Run until manager (and socket?! TODO) finishes
     manager_thread.join().unwrap();
