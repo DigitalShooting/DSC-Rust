@@ -20,14 +20,14 @@ pub enum Error {
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        match self {
-            Error::DisciplineTargetNotFound(_err) =>
+        match *self {
+            Error::DisciplineTargetNotFound(_) =>
                 "Target not found",
             Error::DefaultDisciplineNotFound =>
                 "Default discipline was not found",
-            Error::FileNotFound(_err) =>
+            Error::FileNotFound(_) =>
                 "File not found",
-            Error::JSONParsing(_err) =>
+            Error::JSONParsing(_) =>
                 "Error parsing JSON file",
             Error::DisciplineParsing(_, _) =>
                 "Error parsing discipline json file",
@@ -50,18 +50,18 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::DisciplineTargetNotFound(_err) =>
+        match *self {
+            Error::DisciplineTargetNotFound(_) =>
                 write!(f, "Target for Discipline not found"),
             Error::DefaultDisciplineNotFound =>
                 write!(f, "Default discipline was not found"),
-            Error::FileNotFound(err) =>
+            Error::FileNotFound(ref err) =>
                 write!(f, "File not found: {}", err),
-            Error::JSONParsing(err) =>
+            Error::JSONParsing(ref err) =>
                 write!(f, "Error parsing JSON file: {}", err),
-            Error::DisciplineParsing(path, err) =>
+            Error::DisciplineParsing(ref path, ref err) =>
                 write!(f, "Error parsing discipline json at path {:?}: {}", path, err),
-            Error::TargetParsing(path, err) =>
+            Error::TargetParsing(ref path, ref err) =>
                 write!(f, "Error parsing target json at path {:?}: {}", path, err),
         }
 

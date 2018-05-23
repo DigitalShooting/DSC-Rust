@@ -35,12 +35,40 @@ impl Series {
 
 
 impl AddShot for Series {
-    fn add_shot(&mut self, shot: Shot, _discipline: &Discipline, count_mode: &CountMode) {
+    fn add_shot(&mut self, shot: Shot, discipline: &Discipline, count_mode: &CountMode) {
         // add ring count so series sum
         self.sum.add(shot.ring_count, &count_mode);
         self.number_of_shots += 1;
 
         // add shot to series
         self.shots.push(shot);
+
+        // print!("{}", Svg(discipline.target.draw(), 500, 500));
+
+        // print!("{}", Svg(self.draw(), 500, 500));
     }
 }
+
+
+
+
+
+
+
+
+// use simplesvg::*;
+//
+// pub trait Draw {
+//     fn draw(&self) -> Vec<Fig>;
+// }
+//
+//
+// impl Draw for Series {
+//     fn draw(&self) -> Vec<Fig> {
+//         let fig = Fig::Rect(10., 10., 200., 100.)
+//                 .styled(Attr::default().fill(Color(0xff, 0, 0)));
+//         let text = Fig::Text(0., 20., "<XML & Stuff>".to_string());
+//         let c = Fig::Circle(20., 20., 100.);
+//         vec![fig, text, c]
+//     }
+// }

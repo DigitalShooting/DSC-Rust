@@ -12,6 +12,7 @@ websocket = "0.20.2"
 time = "0.1.38"
 byteorder = "1.2.2"
 rand = "0.4"
+simplesvg = "0.4"
 
 [build-dependencies]
 cc = "1.0"

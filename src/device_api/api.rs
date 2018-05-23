@@ -17,6 +17,8 @@ pub enum DeviceCommand {
 
     /// On ESA devices this will move the paper an checks the movement
     CheckPaper,
+
+    DisableBandAck,
 }
 
 /// Communication channel to Manager object, to inform about new shots and errors.
@@ -31,7 +33,7 @@ pub enum Action {
 
 impl StdError for Action {
     fn description(&self) -> &str {
-        match self {
+        match *self {
             Action::NewShot(_) => "NewShot",
             Action::Error(_) => "Device Error"
         }
@@ -40,9 +42,9 @@ impl StdError for Action {
 
 impl fmt::Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Action::NewShot(shot) => write!(f, "NewShot: {:?}", shot),
-            Action::Error(err) => write!(f, "{}", err),
+        match *self {
+            Action::NewShot(ref shot) => write!(f, "NewShot: {:?}", shot),
+            Action::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -57,7 +59,7 @@ pub enum Error {
 
 impl StdError for Error {
     fn description(&self) -> &str {
-        match self {
+        match *self {
             Error::PaperStuck => "PaperStuck",
             Error::InvalidSerialPort => "InvalidSerialPort"
         }
@@ -66,7 +68,7 @@ impl StdError for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
+        match *self {
             Error::PaperStuck => write!(f, "PaperStuck"),
             Error::InvalidSerialPort => write!(f, "InvalidSerialPort"),
         }

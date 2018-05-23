@@ -15,6 +15,8 @@ extern crate rand;
 
 // extern crate time;
 
+extern crate simplesvg;
+
 use std::path::Path;
 
 

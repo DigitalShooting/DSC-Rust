@@ -3,9 +3,11 @@ use std::thread;
 use std::time::Duration;
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
+use std::sync::{Arc, Mutex};
 
 use session::ShotRaw;
 use device_api::api::{API, Action, Error as DeviceError, DeviceCommand};
+use device_api::esa::band_ack;
 
 /// We use some c functions to comunicate with the ESA interface, using rust crates just did not
 /// work. I just could not read data from the device.
@@ -17,7 +19,7 @@ extern {
 }
 
 /// Typealias for the c file desciptor
-type SerialPort = i32;
+pub type SerialPort = i32;
 
 
 
@@ -274,7 +276,12 @@ impl API for ESA {
         let serial_path = self.path.clone();
         let on_part_band = self.on_part_band;
         let on_shot_band = self.on_shot_band;
+
         thread::spawn(move || {
+
+            let paper_move_checker = Arc::new(Mutex::new(
+                PaperMoveChecker::new("127.0.0.1:4040".to_string(), 1_u8)
+            ));
 
             // Sleep twice the interval time, to make shure the previous process has
             // closed the port.
@@ -296,8 +303,14 @@ impl API for ESA {
                             Ok(DeviceCommand::NewPart) | Ok(DeviceCommand::CheckPaper) => {
                                 // Check if called on setup also, to check paper
                                 ESA::perform_band(port, on_part_band);
-                                PaperMoveChecker::check(port, tx.clone());
+                                PaperMoveChecker::check(paper_move_checker.clone(), port, tx.clone());
                             },
+
+                            Ok(DeviceCommand::DisableBandAck) => {
+                                if let Ok(mut pmc) = paper_move_checker.lock() {
+                                    pmc.disable();
+                                }
+                            }
 
                             // When we got no message we check for shots
                             Err(TryRecvError::Empty) => {
@@ -308,7 +321,7 @@ impl API for ESA {
                                             Ok(_) => {},
                                             Err(err) => println!("{}", err),
                                         }
-                                        PaperMoveChecker::check(port, tx.clone());
+                                        PaperMoveChecker::check(paper_move_checker.clone(), port, tx.clone());
                                     }
                                     NopResult::Ack => { }
                                     NopResult::Err(err) => {
@@ -339,37 +352,67 @@ impl API for ESA {
 
 
 
-struct PaperMoveChecker { }
+pub struct PaperMoveChecker {
+    band_ack_server: String,
+    address: u8,
+    ticks: u16,
+    enabled: bool,
+}
 impl PaperMoveChecker {
+
+    fn new(band_ack_server: String, address: u8) -> PaperMoveChecker {
+        PaperMoveChecker{ band_ack_server, address, ticks: 0, enabled: true }
+    }
+
     // Calls the paper move server and asks if the paper has been moved recently
     // TODO IP/ Config for paper move server
     //
     // return:  true if Ok, false, if no movement
-    fn ask_for_paper_move() -> bool {
-        // TODO
+    fn ask_for_paper_move(&mut self) -> bool {
+        let old_ticks = self.ticks;
+        match band_ack::ask_for_ticks(&self.band_ack_server, self.address) {
+            Ok(ticks) => self.ticks = ticks,
+            Err(err) => {
+                println!("{}", err);
+                return false
+            }
+        }
+
+        println!("oldTicks: {}, newTicks: {}", old_ticks, self.ticks);
+
         return true;
     }
 
     // Open thread to check for paper movement
     // We try 3 times to move the paper, otherwise we send an error on the tx channel
     //
+    // paper_move_checker
     // port:    Serial port, used to perform_band
     // tx:      Channel to send error message, if any
     // TODO IP/ Config for paper move server
-    pub fn check(port: SerialPort, tx: mpsc::Sender<Action>) {
+    pub fn check(paper_move_checker: Arc<Mutex<PaperMoveChecker>>, port: SerialPort, tx: mpsc::Sender<Action>) {
+        if let Ok(pmc) = paper_move_checker.lock() {
+            if !pmc.enabled { return; }
+        }
         thread::spawn(move || {
             // Check 3 times if we have any movement
             for _ in 0..3 {
                 // return and end this thrad if ok
-                if PaperMoveChecker::ask_for_paper_move() { return; }
+                if let Ok(mut pmc) = paper_move_checker.lock() {
+                    if pmc.ask_for_paper_move() { return; }
+                }
+
                 // try to move
                 ESA::perform_band(port, 2_u8);
             }
             tx.send(Action::Error(DeviceError::PaperStuck)).unwrap();
         });
     }
-}
 
+    pub fn disable(&mut self) {
+        self.enabled = false;
+    }
+}
 
 
 

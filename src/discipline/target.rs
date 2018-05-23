@@ -44,3 +44,34 @@ pub struct WebColor {
     pub hex: String,
     pub alpha: f32,
 }
+
+
+
+
+
+
+
+
+
+// use session::series::Draw;
+// use simplesvg::*;
+//
+// impl Draw for Target {
+//     fn draw(&self) -> Vec<Fig> {
+//         let mut figs: Vec<Fig> = vec![];
+//         for ring in &self.rings {
+//             figs.extend(ring.draw());
+//         }
+//         figs
+//     }
+// }
+//
+//
+//
+// impl Ring {
+//     fn draw(&self) -> Vec<Fig> {
+//         let circle = Fig::Circle(250., 250., self.width as f32);
+//         let attr = Attr::default().stroke(Color(0, 0, 0));
+//         vec![Fig::Styled(attr, Box::new(circle))]
+//     }
+// }

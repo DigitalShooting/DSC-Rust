@@ -10,14 +10,14 @@ pub enum Error {
 
 impl StdError for Error {
     fn description(&self) -> &str {
-        match self {
+        match *self {
             Error::TargetNotFound => "Target not found",
         }
     }
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
+        match *self {
             Error::TargetNotFound => write!(f, "Target not found"),
         }
     }
