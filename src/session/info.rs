@@ -86,14 +86,14 @@ impl Team {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Line {
-    pub id: String,
+    pub id: i32,
     pub name: String,
     pub short_name: String,
 }
 impl Line {
     pub fn demo() -> Line {
         Line {
-            id: "id0".to_string(),
+            id: 1_i32,
             name: "Line 1".to_string(),
             short_name: "1".to_string(),
         }

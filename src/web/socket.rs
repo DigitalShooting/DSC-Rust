@@ -8,10 +8,11 @@ use websocket::OwnedMessage;
 use websocket::sync::Server;
 use websocket::server::upgrade::WsUpgrade;
 use websocket::server::upgrade::sync::Buffer;
+use std::process::Command;
 
 use dsc_manager::{DSCManagerMutex, UpdateManager};
 use session::Update as SessionUpdate;
-use web::types::{Config, RequestType, SendType, ClientSenders};
+use super::{Config, RequestType, SendType, ClientSenders};
 
 
 
@@ -138,7 +139,8 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
                     manager.lock().unwrap().set_disciplin_by_name(&name);
                 },
                 RequestType::Shutdown => {
-                    println!("Not Implemented");
+                    // TODO path
+                    let _ = Command::new("sudo").arg("/sbin/shutdown");
                 },
                 RequestType::DisablePaperAck => {
                     manager.lock().unwrap().disable_paper_ack();

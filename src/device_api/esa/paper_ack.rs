@@ -8,16 +8,22 @@ use std::str::Utf8Error;
 use std::fmt;
 use std::error;
 use std::thread;
+use std::time::Duration;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-use device_api::api::{Action as DeviceAction, Error as DeviceError};
-use device_api::esa::esa::{ESA, SerialPort};
+use super::super::{Action as DeviceAction, Error as DeviceError};
+use super::esa::{ESA, SerialPort};
 
 
-
+/// Minimum delta value to register paper movement
 const MIN_PAPER_MOVE_DELTA: u16 = 200;
+
+/// How much to move the paper during the automatic retrys
 const PAPER_STUCK_MOVEMENT: u8 = 2;
+
+/// Time in ms to wait between the retrys
+const PAPER_STUCK_SLEEP_INTERVAL: u64 = 1000;
 
 
 
@@ -180,7 +186,7 @@ impl PaperMoveChecker {
         let old_ticks = self.ticks;
         self.ticks = self.ask_for_ticks_retry()?;
         let delta = PaperMoveChecker::real_delta(old_ticks, self.ticks);
-        println!("oldTicks: {}, newTicks: {}, delta: {}, has_movement: {}", old_ticks, self.ticks, delta, delta > MIN_PAPER_MOVE_DELTA);
+        println!("oldTicks: {}, newTicks: {}, delta: {}, has_movement: {}", old_ticks, self.ticks, delta, delta >= MIN_PAPER_MOVE_DELTA);
         Ok(delta > MIN_PAPER_MOVE_DELTA)
     }
 
@@ -208,8 +214,34 @@ impl PaperMoveChecker {
 
                 // try to move
                 ESA::perform_band(port, PAPER_STUCK_MOVEMENT);
+
+                // sleep a bit and check again
+                thread::sleep(Duration::from_millis(PAPER_STUCK_SLEEP_INTERVAL));
             }
             tx.send(DeviceAction::Error(DeviceError::PaperStuck)).unwrap();
         });
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+#[cfg(test)]
+mod test {
+    use super::PaperMoveChecker;
+
+    #[test]
+    fn test_real_delta() {
+        assert_eq!(100_u16, PaperMoveChecker::real_delta(100_u16, 200_u16));
+        assert_eq!(0_u16, PaperMoveChecker::real_delta(100_u16, 100_u16));
+        assert_eq!(200_u16, PaperMoveChecker::real_delta(65536_u16, 200_u16));
+        assert_eq!(5735_u16, PaperMoveChecker::real_delta(60000_u16, 200_u16));
     }
 }

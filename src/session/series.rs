@@ -1,7 +1,6 @@
-use session::counter::Counter;
-use session::shot::*;
+use super::{Counter, CountMode, Shot, AddShot};
 use discipline::*;
-use session::CountMode;
+
 
 
 

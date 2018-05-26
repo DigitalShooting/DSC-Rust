@@ -1,4 +1,4 @@
-use discipline::time::Time;
+use super::time::Time;
 use session::CountMode;
 
 

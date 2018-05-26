@@ -1,8 +1,9 @@
 use rand::{self, Rng};
+use std::time::SystemTime;
 
 use helper::round_to_one::RoundToOne;
 use discipline::*;
-use session::counter::CountMode;
+use super::CountMode;
 
 
 
@@ -43,8 +44,7 @@ pub struct Shot {
     /// - tenth 10.3 => ring_count = 10.3
     pub ring_count: f64,
 
-    // TODO
-    // date: ???,
+    date: SystemTime,
 }
 
 
@@ -83,7 +83,8 @@ impl Shot {
 
         let ring_text = format!("{:.1}", ring);
 
-        return Shot {teiler, angle, x, y, ring, ring_text, ring_count};
+        let date = SystemTime::now();
+        return Shot {teiler, angle, x, y, ring, ring_text, ring_count, date};
     }
 
     /// Helper to calculate the actual ring for a given teiler

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use discipline::interface::Interface;
-use discipline::target::Target;
-use discipline::part::DisciplinePart;
-use discipline::time::Time;
-use discipline::error::Error as DisciplineError;
+use super::interface::Interface;
+use super::target::Target;
+use super::part::DisciplinePart;
+use super::time::Time;
+use super::error::Error as DisciplineError;
 
 
 

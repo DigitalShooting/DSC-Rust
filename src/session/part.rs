@@ -1,6 +1,8 @@
-use session::{Counter, CountMode};
-use session::shot::*;
-use session::series::*;
+use std::time::SystemTime;
+
+use super::{Counter, CountMode};
+use super::shot::*;
+use super::series::*;
 use discipline::*;
 
 
@@ -12,6 +14,7 @@ pub struct Part {
     pub part_type: PartType,
     sum: Counter,
     number_of_shots: i32,
+    date: Option<SystemTime>,
 }
 
 pub type PartType = String;
@@ -19,6 +22,8 @@ pub type PartType = String;
 impl Part {
     /// New empty part
     pub fn new(part_type: PartType) -> Part {
+        let date = None; // TODO
+
         Part {
             series: vec![
                 Series::new(),
@@ -26,6 +31,7 @@ impl Part {
             part_type,
             sum: Counter::empty(),
             number_of_shots: 0,
+            date,
         }
     }
 

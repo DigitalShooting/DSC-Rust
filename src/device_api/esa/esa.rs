@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 use std::fmt;
 
 use session::ShotRaw;
-use device_api::api::{API, Action, Error as DeviceError, DeviceCommand};
-use device_api::esa::paper_ack::PaperMoveChecker;
+use super::super::{API, Action, Error as DeviceError, DeviceCommand};
+use super::paper_ack::PaperMoveChecker;
 
 /// We use some c functions to comunicate with the ESA interface, using rust crates just did not
 /// work. I just could not read data from the device.
@@ -265,12 +265,8 @@ impl ESA {
         match ESA::read(port) {
             Ok(payload) => {
                 match payload.len() {
-                    1 if payload[0] == 0x08 => {
-                        println!("perform_set ok");
-                    }
-                    _ => {
-                        println!("Read Error: invalid payload: {:?}", payload);
-                    }
+                    1 if payload[0] == 0x08 => println!("perform_set ok"),
+                    _ => println!("Read Error: invalid payload: {:?}", payload),
                 }
             }
             Err(err) => {
@@ -372,15 +368,7 @@ impl API for ESA {
 
 #[cfg(test)]
 mod test {
-    use device_api::esa::*;
-
-    #[test]
-    fn test_real_delta() {
-        assert_eq!(100_u16, PaperMoveChecker::real_delta(100_u16, 200_u16));
-        assert_eq!(0_u16, PaperMoveChecker::real_delta(100_u16, 100_u16));
-        assert_eq!(200_u16, PaperMoveChecker::real_delta(65536_u16, 200_u16));
-        assert_eq!(5735_u16, PaperMoveChecker::real_delta(60000_u16, 200_u16));
-    }
+    use super::*;
 
     #[test]
     fn test_calculate_checksum() {

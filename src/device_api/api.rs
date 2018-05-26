@@ -3,8 +3,8 @@ use std::error::Error as StdError;
 use std::fmt;
 
 use session::ShotRaw;
-use device_api::esa::esa::SerialError;
-use device_api::esa::paper_ack::Error as PaperAckError;
+use super::esa::esa::SerialError;
+use super::esa::paper_ack::Error as PaperAckError;
 
 
 

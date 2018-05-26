@@ -7,7 +7,7 @@ use session::{Session, Update as UpdateSession, PartType, ActivePart, AddShotRaw
 use discipline::*;
 use device_api;
 use device_api::api::{API, Action, DeviceCommand};
-use config::Config;
+use config::{Config, DatabaseConfig};
 use web::SendType;
 
 
@@ -16,11 +16,6 @@ pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
 pub type DSCManagerThread = thread::JoinHandle<()>;
 
 
-/// Used to send status updates from the manager to the client (socket api)
-// pub enum Update { // EventResponse?
-//     Data(String),
-//     Error(String),
-// }
 
 /// Indicated the current state of the current shot provider
 enum ShotProviderState {
@@ -32,6 +27,66 @@ enum ShotProviderState {
 }
 
 
+
+
+
+
+trait DBHandler {
+    fn new_session_id(&self, line_id: i32) -> i32;
+    fn update_sesssion(&self, session: &Session);
+}
+
+
+
+#[derive(Clone)]
+struct DBHandlerNone {}
+impl DBHandlerNone {
+    pub fn new() -> DBHandlerNone {
+        DBHandlerNone{}
+    }
+}
+impl DBHandler for DBHandlerNone {
+    fn new_session_id(&self, line_id: i32) -> i32 {
+        return 0_i32;
+    }
+    fn update_sesssion(&self, session: &Session) {}
+}
+
+
+
+
+use database::database;
+
+#[derive(Clone)]
+struct DBHandlerSQL {
+    db_url: String,
+}
+impl DBHandlerSQL {
+    pub fn new(db_config: &DatabaseConfig) -> DBHandlerSQL {
+        DBHandlerSQL { db_url: db_config.db_url.clone() }
+    }
+}
+impl DBHandler for DBHandlerSQL {
+    fn new_session_id(&self, line_id: i32) -> i32 {
+        let con = database::establish_connection();
+        let s = database::new_session_id(&con, &line_id);
+        // println!("{:?}", s);
+        // database::print_all_sessions();
+        s.id
+    }
+
+    fn update_sesssion(&self, session: &Session) {
+        let con = database::establish_connection();
+        let s = database::update_session(&con, session);
+        // database::print_all_sessions();
+    }
+}
+
+
+
+
+
+
 /// DSCManager contains the current session and sets up the shot provider for the current
 /// discipline. Events for the websockets are send by a channel, which will be created from the
 /// websocket site. The communication between a shot provider and the mananger also happens over
@@ -41,6 +96,7 @@ enum ShotProviderState {
 /// - Move all other action to session
 pub struct DSCManager {
     pub session: Session,
+    db_handler: Box<DBHandler + Send>,
 
     // Channel for sending changes to the socket api
     pub on_update_tx: Option<mpsc::Sender<SendType>>,
@@ -56,12 +112,21 @@ pub struct DSCManager {
 
 impl DSCManager {
     pub fn new(config: Config) -> (DSCManagerMutex, DSCManagerThread) {
+        // Init db handler, based on config
+        let db_handler: Box<DBHandler + Send> = match config.database {
+            Some(ref db_config) => Box::new(DBHandlerSQL::new(db_config)),
+            None => Box::new(DBHandlerNone::new()),
+        };
+
+        // TODO REMOVE and just init session in one method
         let discipline = config.default_discipline.clone();
-        let session = Session::new(config.line.clone(), discipline);
+        // let session_id = db_handler.new_session_id();
+        let session = Session::new(0, config.line.clone(), discipline);
 
         let (get_from_device_tx, get_from_device_rx) = mpsc::channel::<Action>();
         let manager = DSCManager {
             session,
+            db_handler,
             on_update_tx: None,
             get_from_device_tx, get_from_device_rx,
             shot_provider_state: ShotProviderState::NotRunning,
@@ -82,7 +147,7 @@ impl DSCManager {
         // Start default discipline
         if let Ok(mut manager) = manager.lock() {
             let discipline = manager.session.discipline.clone();
-            manager.start_shot_provider(discipline)
+            manager.set_disciplin(discipline)
         }
 
         // Start and return main manager worker thread.
@@ -101,6 +166,8 @@ impl DSCManager {
     /// Send current session to the client
     fn update_sessions(&mut self) {
         // TODO ref
+        self.db_handler.update_sesssion(&self.session);
+
         let session = self.session.clone();
         self.send_message_to_observer(SendType::Session { session })
     }
@@ -110,10 +177,7 @@ impl DSCManager {
     /// message:    Message to send
     fn send_message_to_observer(&mut self, message: SendType) {
         if let Some(ref on_update_tx) = self.on_update_tx {
-            match on_update_tx.send(message) {
-                Ok(_) => {},
-                Err(err) => println!("{}", err),
-            }
+            let _ = on_update_tx.send(message);
         }
     }
 
@@ -230,7 +294,12 @@ impl UpdateManager for DSCManager {
     fn set_disciplin(&mut self, discipline: Discipline) {
         println!("Set discipline {:?}", discipline.id);
         self.start_shot_provider(discipline.clone());
-        self.session = Session::new(self.config.line.clone(), discipline);
+
+        let session_id = self.db_handler.new_session_id(self.config.line.id);
+        self.session = Session::new(session_id, self.config.line.clone(), discipline);
+        // TODO init session in db, and set session id
+        // or do it in session itself?
+
         self.update_sessions();
     }
 

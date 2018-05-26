@@ -15,10 +15,19 @@ type Result<T> = std::result::Result<T, ConfigError>;
 
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseConfig {
+    pub db_url: String,
+}
+
+
+
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub line: Line,
     pub disciplines: HashMap<String, Discipline>,
     pub default_discipline: Discipline,
+    pub database: Option<DatabaseConfig>,
 }
 
 impl Config {
@@ -31,6 +40,7 @@ impl Config {
             line,
             disciplines,
             default_discipline,
+            database: Some(DatabaseConfig{db_url: "".to_string()}), // TODO
         })
     }
 

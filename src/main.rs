@@ -1,8 +1,9 @@
 // JSON encoding/ decoding
-extern crate serde;
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
 
 // websocket lib
 extern crate websocket;
@@ -17,7 +18,9 @@ extern crate rand;
 
 extern crate simplesvg;
 
-use std::path::Path;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
 
 
@@ -28,14 +31,20 @@ mod helper;
 mod dsc_manager;
 mod device_api;
 mod web;
+mod database;
 
 use config::Config;
 use dsc_manager::DSCManager;
-use web::Config as SocketConfig;
-use web::socket;
+use web::{Config as SocketConfig, socket};
 
+use std::path::Path;
 
 fn main() {
+
+    // database::database::print_all_sessions();
+    // database::database::test_create_session();
+    // database::database::print_all_sessions();
+
     match Config::new(Path::new("./config/")) {
         Ok(config) => start_dsc(config),
         Err(err) => println!("Error in config: {}", err),

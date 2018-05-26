@@ -1,7 +1,6 @@
-use session::counter::Counter;
-use session::shot::*;
-use session::part::*;
-use session::info::{Line, Info};
+use std::time::SystemTime;
+
+use super::{Counter, Shot, AddShot, ShotRaw, AddShotRaw, Part, PartType, Line, Info};
 use discipline::*;
 
 
@@ -16,12 +15,14 @@ pub type ActivePart = usize;
 /// - statistics
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Session {
+    pub id: i32,
     pub parts: Vec<Part>,
     active_part: ActivePart,
     pub discipline: Discipline,
     pub info: Info,
     sum: Counter,
     number_of_shots: i32,
+    date: Option<SystemTime>,
 }
 
 impl Session {
@@ -29,9 +30,16 @@ impl Session {
     /// line:           Line config to use
     /// discipline:     Discipline to use
     /// return:         Empty session
-    pub fn new(line: Line, discipline: Discipline) -> Session {
+    pub fn new(id: i32, line: Line, discipline: Discipline) -> Session {
         let part_type = discipline.parts[0].id.clone();
+
+        let date = match discipline.time {
+            Time::InstantStart { duration } => Some(SystemTime::now()),
+            _ => None,
+        };
+
         Session {
+            id,
             parts: vec![
                 Part::new(part_type),
             ],
@@ -40,6 +48,7 @@ impl Session {
             info: Info::new(line),
             sum: Counter::empty(),
             number_of_shots: 0,
+            date,
         }
     }
 
@@ -87,6 +96,13 @@ impl AddShotRaw for Session {
     fn add_shot_raw(&mut self, shot_raw: ShotRaw) {
         match self.get_active_discipline_part() {
             Some(discipline_part) => {
+                self.date = match self.discipline.time {
+                    Time::FirstShot { duration } if self.number_of_shots == 0 => Some(SystemTime::now()),
+                    _ => self.date,
+                };
+
+                // TODO check time limit
+
                 let count_mode = discipline_part.count_mode;
                 let shot = Shot::from_raw(shot_raw, &self.discipline.target, &count_mode);
 
