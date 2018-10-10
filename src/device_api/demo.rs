@@ -40,11 +40,12 @@ impl API for Demo {
             let mut shots_generated = 0_u32;
             loop {
                 // Check if we extended the shot limit
+                let mut gen_shot = true;
                 if let Some(max_shots) = max_shots {
                     if max_shots <= shots_generated {
-                        return;
+                        thread::sleep(Duration::from_millis(interval));
+                        gen_shot = false;
                     }
-                    shots_generated += 1;
                 }
 
                 match rx.try_recv() {
@@ -53,10 +54,19 @@ impl API for Demo {
                         println!("Stopping DeviceAPI");
                         break;
                     },
+
+                    // Reset max_shots on new part
+                    Ok(DeviceCommand::NewPart) => {
+                        shots_generated = 0;
+                    },
+
                     // When we got no message we generate a shot
                     Err(TryRecvError::Empty) => {
-                        Demo::generate_shot(tx.clone());
-                        thread::sleep(Duration::from_millis(interval));
+                        if gen_shot {
+                            Demo::generate_shot(tx.clone());
+                            thread::sleep(Duration::from_millis(interval));
+                            shots_generated += 1;
+                        }
                     }
                     _ => {},
                 }

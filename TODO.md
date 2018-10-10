@@ -9,6 +9,7 @@
   - add method
 - History API?
 - Database connection
+  - api to fetch sessions
 - Error Handling
   - Logging
   - Show in frontend

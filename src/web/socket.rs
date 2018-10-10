@@ -61,11 +61,12 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, man
         }
         let mut client = request.use_protocol("rust-websocket").accept().unwrap();
 
-        // Send current session on connect
         {
             let session_msg = SendType::Session {
                 session: manager.lock().unwrap().session.clone(),
             };
+
+            // Send current session on connect
             let text = serde_json::to_string(&session_msg).unwrap();
             let message = OwnedMessage::Text(text);
             client.send_message(&message).unwrap_or(());
@@ -137,6 +138,9 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
                 },
                 RequestType::SetDisciplin{ name } => {
                     manager.lock().unwrap().set_disciplin_by_name(&name);
+                },
+                RequestType::SetPart{ name } => {
+                    manager.lock().unwrap().set_part(name, false);
                 },
                 RequestType::Shutdown => {
                     // TODO path

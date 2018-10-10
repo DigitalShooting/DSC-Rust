@@ -178,8 +178,11 @@ impl Update for Session {
         if let Some(_) = self.discipline.get_part_from_type(part_type.clone()) {
             if self.can_exit_part(force) {
                 self.parts.push(Part::new(part_type));
-                self.active_part = self.parts.len();
+                self.active_part = self.parts.len()-1;
             }
+        }
+        else {
+            print!("Unkown type");
         }
     }
 
@@ -207,15 +210,39 @@ mod test {
     use discipline::*;
     use helper;
 
+    fn get_session() -> Session {
+        let discipline = helper::dsc_demo::lg_discipline();
+        return Session::new(0, Line::demo(), discipline);
+    }
+
     #[test]
     fn test_add_shot() {
         let target = helper::dsc_demo::lg_target();
-        let discipline = helper::dsc_demo::lg_discipline();
+        let mut session = get_session();
         let shot = Shot::from_cartesian_coordinates (0, 0, &target, &CountMode::Integer);
 
-        let mut session = Session::new(Line::demo(), discipline);
+
         assert_eq!(1, session.parts.len());
         assert_eq!(0, session.active_part);
     }
+
+    #[test]
+    fn test_add_part() {
+        let mut session = get_session();
+        assert_eq!(0, session.active_part);
+        session.set_part("probe".to_string(), false);
+        assert_eq!(1, session.active_part);
+        session.get_active_discipline_part();
+    }
+
+    #[test]
+    fn test_new_target() {
+        let mut session = get_session();
+        assert_eq!(0, session.active_part);
+        session.new_target(false);
+        assert_eq!(1, session.active_part);
+        session.get_active_discipline_part();
+    }
+
 
 }

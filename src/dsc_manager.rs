@@ -316,8 +316,28 @@ impl UpdateSession for DSCManager {
 
     fn new_target(&mut self, force: bool) {
         println!("new_target");
-        self.session.new_target(force);
-        self.update_sessions();
+        // self.session.new_target(force);
+        // self.update_sessions();
+
+        if let Some(d_part) = self.session.get_active_discipline_part() {
+            match d_part.enable_reset_to_new_target {
+                true => {
+                    let part_type = self.session.get_active_part().part_type.clone();
+                    self.set_part(part_type, force);
+                }
+                false => {
+                    // TODO message
+                    println!("cannot do new_target, not allowed");
+                }
+            }
+        }
+        else {
+            // TODO message
+            println!("ERROR, no active part");
+        }
+
+
+
     }
 
 

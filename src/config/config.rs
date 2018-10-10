@@ -40,7 +40,8 @@ impl Config {
             line,
             disciplines,
             default_discipline,
-            database: Some(DatabaseConfig{db_url: "".to_string()}), // TODO
+            database: None,
+            // database: Some(DatabaseConfig{db_url: "".to_string()}), // TODO
         })
     }
 

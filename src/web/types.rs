@@ -27,6 +27,9 @@ pub enum RequestType {
     /// Start new session with given discipline
     SetDisciplin {name: String},
 
+    /// Start new part with given id
+    SetPart {name: String},
+
     /// Shutdown client
     Shutdown,
 

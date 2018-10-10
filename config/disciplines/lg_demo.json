@@ -3,7 +3,7 @@
   "title": "LG Demo",
   "interface": {
     "Demo": {
-      "interval": 1000,
+      "interval": 2500,
       "max_shots": 40
     }
   },
