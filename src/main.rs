@@ -18,6 +18,9 @@ extern crate rand;
 
 extern crate simplesvg;
 
+// autodiscovery
+extern crate mdns;
+
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
@@ -45,10 +48,34 @@ fn main() {
     // database::database::test_create_session();
     // database::database::print_all_sessions();
 
+    start_mdns();
+
     match Config::new(Path::new("./config/")) {
         Ok(config) => start_dsc(config),
         Err(err) => println!("Error in config: {}", err),
     }
+}
+
+
+fn start_mdns() {
+    let responder = mdns::Responder::new().unwrap();
+    let _svc = responder.register(
+        "_ws._tcp".to_owned(),
+        "dsc_client".to_owned(),
+        3008,
+        &["path=/"],
+    );
+
+    // loop {
+    //     ::std::thread::sleep(::std::time::Duration::from_secs(2));
+    // }
+
+    // return thread::spawn(move || {
+    //     loop {
+    //         manager.lock().unwrap().check_device_channel();
+    //         thread::sleep(Duration::from_millis(100));
+    //     }
+    // });
 }
 
 

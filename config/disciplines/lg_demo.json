@@ -37,7 +37,7 @@
       "name": "Match",
       "has_trial_corner": false,
       "main_part": true,
-      "enable_reset_to_new_target": true,
+      "enable_reset_to_new_target": false,
       "series_length": 10,
       "number_of_shots": 40,
       "show_infos": true,

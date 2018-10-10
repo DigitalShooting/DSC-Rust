@@ -8,7 +8,7 @@ use discipline::*;
 use device_api;
 use device_api::api::{API, Action, DeviceCommand};
 use config::{Config, DatabaseConfig};
-use web::SendType;
+use web::{SendType, Log};
 
 
 
@@ -193,9 +193,9 @@ impl DSCManager {
                 },
                 Action::Error(err) => {
                     println!("Error from device_api {:?}", err);
-                    self.send_message_to_observer(SendType::Error {
-                        error: format!("{}", err),
-                    })
+                    self.send_message_to_observer(
+                        Log::new(format!("{}", err))
+                    )
                 },
             }
         }

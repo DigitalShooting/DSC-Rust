@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex, mpsc};
+use std::time::SystemTime;
 
 use session::Session;
 use config::Config as DSCConfig;
@@ -51,6 +52,30 @@ pub enum SendType {
     /// which contains possible disicplines, line info, etc.
     Config {config: DSCConfig},
 
-    /// Error message for the client
-    Error {error: String}
+    // Log message
+    Log {log: Log}
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum LogLevel {
+    Debug, Testing, Normal
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Log {
+    pub message: String,
+    pub date: SystemTime,
+    pub level: LogLevel,
+}
+
+impl Log {
+    pub fn new(message: String) -> SendType {
+        SendType::Log {
+            log: Log {
+                message,
+                date: SystemTime::now(),
+                level: LogLevel::Normal
+            }
+        }
+    }
 }

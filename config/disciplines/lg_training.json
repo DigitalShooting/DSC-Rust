@@ -1,6 +1,6 @@
 {
-  "id": "lg_demo",
-  "title": "LG Demo",
+  "id": "lg_training",
+  "title": "LG Training",
   "interface": {
     "ESA": {
       "port": "/dev/ttyS0",
