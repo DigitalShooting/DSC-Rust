@@ -58,10 +58,11 @@ fn main() {
 
 
 fn start_mdns() {
+    println!("Stadt mdns");
     let responder = mdns::Responder::new().unwrap();
     let _svc = responder.register(
-        "_ws._tcp".to_owned(),
-        "dsc_client".to_owned(),
+        "_http._tcp".to_owned(),
+        "Test".to_owned(),
         3008,
         &["path=/"],
     );

@@ -55,7 +55,7 @@ enum NopResult {
 }
 
 // Time interval (ms) in which we search for new shots
-const ESA_FETCH_INTERVAL: u64 = 200;
+const ESA_FETCH_INTERVAL: u64 = 100;
 
 
 /// DeviceAPI for Haering ESA.
@@ -74,7 +74,7 @@ impl ESA {
         ESA {
             path,
             on_part_band, on_shot_band,
-            paper_ack_server: Some(("127.0.0.1:4040".to_string(), 4_u8))
+            paper_ack_server: None, //Some(("127.0.0.1:4040".to_string(), 4_u8))
         }
     }
 
@@ -118,7 +118,7 @@ impl ESA {
             read_len = serialRead(port, raw.as_ptr(), MAX_LEN);
         };
 
-        // println!("{} {:?}", read_len, raw.to_vec());
+        println!("READ {} {:?}", read_len, raw.to_vec());
         let mut payload: Vec<u8> = Vec::new();
         for i in 0..read_len {
 
@@ -204,7 +204,7 @@ impl ESA {
                       println!("perform_band ok");
                   }
                   _ => {
-                      println!("Read Error: invalid payload: {:?}", payload);
+                      println!("Read Error (band): invalid payload: {:?}", payload);
                   }
               }
           }
@@ -241,7 +241,7 @@ impl ESA {
                         return NopResult::Shot(ShotRaw { x, y });
                     }
                     _ => {
-                        println!("Read Error: invalid payload: {:?}", payload);
+                        println!("Read Error (nop): invalid payload: {:?}", payload);
                         return NopResult::Err(DataError::InvalidPayload);
                     }
                 }
@@ -266,7 +266,7 @@ impl ESA {
             Ok(payload) => {
                 match payload.len() {
                     1 if payload[0] == 0x08 => println!("perform_set ok"),
-                    _ => println!("Read Error: invalid payload: {:?}", payload),
+                    _ => println!("Read Error (set): invalid payload: {:?}", payload),
                 }
             }
             Err(err) => {
@@ -297,13 +297,19 @@ impl API for ESA {
 
 
         thread::spawn(move || {
-            // Sleep twice the interval time, to make shure the previous process has
+            // Sleep twice the interval time, to make sure the previous process has
             // closed the port.
             thread::sleep(Duration::from_millis(ESA_FETCH_INTERVAL*2));
 
             match ESA::serial_open(serial_path) {
                 Ok(port) => {
+                    let _ = ESA::perform_nop(port);
+                    thread::sleep(Duration::from_millis(1000));
+
                     ESA::perform_set(port, on_shot_band);
+                    thread::sleep(Duration::from_millis(500));
+                    ESA::perform_band(port, on_part_band);
+                    thread::sleep(Duration::from_millis(500));
                     loop {
                         match rx.try_recv() {
                             // Stop if we got a stop message or the channel disconnected
@@ -320,6 +326,7 @@ impl API for ESA {
                                 if let Some(ref pmc) = paper_move_checker {
                                     PaperMoveChecker::check(pmc.clone(), port, tx.clone());
                                 }
+                                thread::sleep(Duration::from_millis(500));
                             },
 
                             Ok(DeviceCommand::DisablePaperAck) => paper_move_checker = None,
