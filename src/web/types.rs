@@ -31,6 +31,9 @@ pub enum RequestType {
     /// Start new part with given id
     SetPart {name: String},
 
+    /// Print Current Session
+    Print,
+
     /// Shutdown client
     Shutdown,
 

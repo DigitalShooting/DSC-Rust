@@ -14,20 +14,27 @@ use config::error::Error as ConfigError;
 type Result<T> = std::result::Result<T, ConfigError>;
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DatabaseConfig {
     pub db_url: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WebSocketConfig {
+    // Local URL:PORT to bind websocket server to
+    pub url: String,
 }
 
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     pub line: Line,
     pub disciplines: HashMap<String, Discipline>,
     pub default_discipline: Discipline,
     pub database: Option<DatabaseConfig>,
+    pub websocket: WebSocketConfig,
 }
 
 impl Config {
@@ -36,12 +43,14 @@ impl Config {
         let targets = Config::parse_targets(config_dir.join("targets/"))?;
         let disciplines = Config::parse_disciplines(config_dir.join("disciplines/"), targets)?;
         let default_discipline = Config::parse_default_discipline(config_dir.join("default_discipline.json"), &disciplines)?;
+        let websocket = Config::parse_websocket(config_dir.join("websocket.json"))?;
         Ok(Config {
             line,
             disciplines,
             default_discipline,
             database: None,
             // database: Some(DatabaseConfig{db_url: "".to_string()}), // TODO
+            websocket,
         })
     }
 
@@ -75,6 +84,12 @@ impl Config {
         let raw_json = Config::read_file(path)?;
         let line: Line = serde_json::from_str(&raw_json)?;
         Ok(line)
+    }
+
+    fn parse_websocket(path: PathBuf) -> Result<WebSocketConfig> {
+        let raw_json = Config::read_file(path)?;
+        let websocket: WebSocketConfig = serde_json::from_str(&raw_json)?;
+        Ok(websocket)
     }
 
 

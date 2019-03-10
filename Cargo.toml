@@ -15,9 +15,7 @@ rand = "0.4"
 simplesvg = "0.4"
 diesel = { version = "1.3.3", features = ["postgres", "serde_json"] }
 dotenv = "0.9.0"
-
-[dependencies.mdns]
-git = "https://github.com/plietar/rust-mdns"
+tera = { version = "0.11.20" }
 
 [build-dependencies]
 cc = "1.0"

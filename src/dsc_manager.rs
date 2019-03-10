@@ -9,7 +9,7 @@ use device_api;
 use device_api::api::{API, Action, DeviceCommand};
 use config::{Config, DatabaseConfig};
 use web::{SendType, Log};
-
+use print::print;
 
 
 pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
@@ -287,6 +287,9 @@ pub trait UpdateManager {
     ///
     /// discipline_id:   id of the discipline (the filename from the config, without suffix)
     fn set_disciplin_by_name(&mut self, discipline_id: &str);
+
+
+    fn print_session(&self);
 }
 
 impl UpdateManager for DSCManager {
@@ -310,7 +313,16 @@ impl UpdateManager for DSCManager {
         }
     }
 
+    fn print_session(&self) {
+        // println!("{:?}", self.session);
+
+        let a = print(&self.session);
+        println!("{:?}", a);
+    }
 }
+
+
+
 
 impl UpdateSession for DSCManager {
 

@@ -142,6 +142,9 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
                 RequestType::SetPart{ name } => {
                     manager.lock().unwrap().set_part(name, false);
                 },
+                RequestType::Print => {
+                    manager.lock().unwrap().print_session();
+                },
                 RequestType::Shutdown => {
                     // TODO path
                     let _ = Command::new("sudo").arg("/sbin/shutdown");
