@@ -180,9 +180,12 @@ impl Update for Session {
                 self.parts.push(Part::new(part_type));
                 self.active_part = self.parts.len()-1;
             }
+            else {
+                println!("Part change not allowed");
+            }
         }
         else {
-            print!("Unkown type");
+            println!("Unkown type");
         }
     }
 

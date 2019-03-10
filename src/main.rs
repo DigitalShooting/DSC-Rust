@@ -20,6 +20,8 @@ extern crate simplesvg;
 
 extern crate tera;
 
+extern crate clap;
+
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
@@ -36,11 +38,14 @@ mod web;
 mod database;
 mod print;
 
+use std::path::Path;
+use clap::{Arg, App, SubCommand};
+
 use config::Config;
 use dsc_manager::DSCManager;
 use web::{Config as SocketConfig, socket};
 
-use std::path::Path;
+
 
 
 
@@ -48,13 +53,22 @@ use std::path::Path;
 // 1. Parse Config, crash if not valid
 // 2. Start DSC
 fn main() {
+    let matches = App::new("DSC")
+                          .version("1.0")
+                          .author("Jannik Lorenz <mail@janniklorenz.de>")
+                          .about("Digital Shooting Client")
+                          .arg(Arg::with_name("config")
+                               .short("c")
+                               .long("config")
+                               .value_name("DIR")
+                               .help("Custiom dir for config, if not present, ./config will be used")
+                               .required(false)
+                               .takes_value(true))
+                          .get_matches();
 
-    // database::database::print_all_sessions();
-    // database::database::test_create_session();
-    // database::database::print_all_sessions();
+    let config_dir = matches.value_of("config").unwrap_or("./config/");
 
-
-    match Config::new(Path::new("./config/")) {
+    match Config::new(Path::new(config_dir)) {
         Ok(config) => start_dsc(config),
         Err(err) => println!("Error in config: {}", err),
     }

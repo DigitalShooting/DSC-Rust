@@ -4,8 +4,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use tera::Error as TerraError;
 use tera::{Context, Tera};
+use std::process::Command;
 
-use session::{Session};
+use session::Session;
 
 
 // Use given template name to generate a tex file for given session and return it as a string
@@ -30,6 +31,10 @@ pub fn print(session: &Session) -> Result<(), Error> {
     let tex_string = create_tex_session("default.tex", &session)?;
     let mut file = File::create("templates/tmp/foo.tex")?;
     file.write_all(tex_string.as_bytes())?;
+
+
+    // let _ = Command::new("sudo").arg("/sbin/shutdown");
+
     return Ok(());
 }
 

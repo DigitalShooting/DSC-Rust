@@ -10,7 +10,7 @@ use device_api::api::{API, Action, DeviceCommand};
 use config::{Config, DatabaseConfig};
 use web::{SendType, Log};
 use print::print;
-
+use database::handler::{DBHandler, DBHandlerSQL, DBHandlerNone};
 
 pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
 pub type DSCManagerThread = thread::JoinHandle<()>;
@@ -25,65 +25,6 @@ enum ShotProviderState {
     /// We have no running shot provider
     NotRunning,
 }
-
-
-
-
-
-
-trait DBHandler {
-    fn new_session_id(&self, line_id: i32) -> i32;
-    fn update_sesssion(&self, session: &Session);
-}
-
-
-
-#[derive(Clone)]
-struct DBHandlerNone {}
-impl DBHandlerNone {
-    pub fn new() -> DBHandlerNone {
-        DBHandlerNone{}
-    }
-}
-impl DBHandler for DBHandlerNone {
-    fn new_session_id(&self, line_id: i32) -> i32 {
-        return 0_i32;
-    }
-    fn update_sesssion(&self, session: &Session) {}
-}
-
-
-
-
-use database::database;
-
-#[derive(Clone)]
-struct DBHandlerSQL {
-    db_url: String,
-}
-impl DBHandlerSQL {
-    pub fn new(db_config: &DatabaseConfig) -> DBHandlerSQL {
-        DBHandlerSQL { db_url: db_config.db_url.clone() }
-    }
-}
-impl DBHandler for DBHandlerSQL {
-    fn new_session_id(&self, line_id: i32) -> i32 {
-        let con = database::establish_connection();
-        let s = database::new_session_id(&con, &line_id);
-        // println!("{:?}", s);
-        // database::print_all_sessions();
-        s.id
-    }
-
-    fn update_sesssion(&self, session: &Session) {
-        let con = database::establish_connection();
-        let s = database::update_session(&con, session);
-        // database::print_all_sessions();
-    }
-}
-
-
-
 
 
 
@@ -120,7 +61,8 @@ impl DSCManager {
 
         // TODO REMOVE and just init session in one method
         let discipline = config.default_discipline.clone();
-        // let session_id = db_handler.new_session_id();
+        // let session_id = db_handler.new_session_id(config.line.id);
+        // Dummy session, will change
         let session = Session::new(0, config.line.clone(), discipline);
 
         let (get_from_device_tx, get_from_device_rx) = mpsc::channel::<Action>();
@@ -188,6 +130,8 @@ impl DSCManager {
         if let Ok(message) = self.get_from_device_rx.try_recv() {
             match message {
                 Action::NewShot(shot_raw) => {
+                    // TODO add return type to add_shot_raw to show message in frontend if we need
+                    // to send ad message (e.g. time is up)
                     self.session.add_shot_raw(shot_raw);
                     self.update_sessions();
                 },
@@ -314,10 +258,8 @@ impl UpdateManager for DSCManager {
     }
 
     fn print_session(&self) {
-        // println!("{:?}", self.session);
-
-        let a = print(&self.session);
-        println!("{:?}", a);
+        let printError = print(&self.session);
+        println!("{:?}", printError);
     }
 }
 

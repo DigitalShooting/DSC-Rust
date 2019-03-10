@@ -7,7 +7,7 @@ use super::models::{DBSession, NewDBSession};
 
 use session::Session as RSession;
 
-
+// TODO add db_config here
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
 
@@ -33,7 +33,7 @@ pub fn update_session(conn: &PgConnection, s: &RSession) {
     use super::schema::session::dsl::*;
 
     let dd = serde_json::to_value(s).unwrap();
-    println!("{}", s.id);
+    // println!("{}", s.id);
     diesel::update(session.filter(id.eq(s.id)))
         .set(data.eq(Some(dd)))
         .execute(conn);

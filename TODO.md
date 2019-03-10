@@ -4,9 +4,7 @@
 - send available configs to client
 - Print
   - Render SVG in rust
-  - use latex template
   - render latex
-  - add method
 - History API?
 - Database connection
   - api to fetch sessions
