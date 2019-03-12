@@ -4,6 +4,6 @@ fn main() {
     cc::Build::new()
         .file("src/device_api/esa/esa.c")
         // .flag_if_supported("-std=gnu99")
-        .flag_if_supported("-std=c11")
+        .flag_if_supported("-std=c17")
         .compile("esa_c");
 }
