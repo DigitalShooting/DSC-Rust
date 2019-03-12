@@ -241,7 +241,7 @@ mod test {
     fn test_real_delta() {
         assert_eq!(100_u16, PaperMoveChecker::real_delta(100_u16, 200_u16));
         assert_eq!(0_u16, PaperMoveChecker::real_delta(100_u16, 100_u16));
-        assert_eq!(200_u16, PaperMoveChecker::real_delta(65536_u16, 200_u16));
+        assert_eq!(200_u16, PaperMoveChecker::real_delta(65535_u16, 200_u16));
         assert_eq!(5735_u16, PaperMoveChecker::real_delta(60000_u16, 200_u16));
     }
 }
