@@ -139,7 +139,7 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
                 RequestType::SetDisciplin{ name } => {
                     manager.lock().unwrap().set_disciplin_by_name(&name);
                 },
-                RequestType::SetPart{ name } => {
+                RequestType::SetPart{ name, forceNewPart } => {
                     manager.lock().unwrap().set_part(name, false);
                 },
                 RequestType::Print => {

@@ -41,7 +41,7 @@
       "series_length": 10,
       "number_of_shots": 40,
       "show_infos": true,
-      "count_mode": "Integer",
+      "count_mode": "Tenth",
       "time": {
         "type": "None"
       },

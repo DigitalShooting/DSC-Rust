@@ -5,7 +5,7 @@
 /// Currenty we have 2 count modes, Integer and Tenth.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Counter {
-    value: f64,
+    pub value: f64,
     text: String,
 }
 

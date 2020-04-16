@@ -1,5 +1,6 @@
 use std::time::SystemTime;
 
+use helper::round_to_one::RoundToOne;
 use super::{Counter, CountMode};
 use super::shot::*;
 use super::series::*;
@@ -14,6 +15,8 @@ pub struct Part {
     pub part_type: PartType,
     sum: Counter,
     number_of_shots: i32,
+    result_prediction: Option<String>,
+    average: Option<String>,
     date: Option<SystemTime>,
 }
 
@@ -31,12 +34,14 @@ impl Part {
             part_type,
             sum: Counter::empty(),
             number_of_shots: 0,
+            result_prediction: None,
+            average: None,
             date,
         }
     }
 
     /// Add a new series to the part an update the active series index
-    fn new_series(&mut self) {
+    pub fn new_series(&mut self) {
         let new_series = Series::new();
         self.series.push(new_series);
     }
@@ -58,12 +63,23 @@ impl Part {
 
 
 impl AddShot for Part {
-    fn add_shot(&mut self, shot: Shot, discipline: &Discipline, count_mode: &CountMode) {
+    fn add_shot(&mut self, mut shot: Shot, discipline: &Discipline, count_mode: &CountMode) {
         match self.get_discipline_part(discipline) {
             Some(discipline_part) => {
                 // Add the ring count to the part sum
                 self.sum.add(shot.ring_count, &count_mode);
                 self.number_of_shots += 1;
+                shot.number = self.number_of_shots;
+                
+                
+                match discipline_part.average {
+                    PartAverage::Average{ number_of_shots } => {
+                        let average_complete = (self.sum.value / f64::from(self.number_of_shots));
+                        self.result_prediction = Some(format!("{:.0}", (average_complete * f64::from(number_of_shots)).round()));
+                        self.average = Some(format!("{:.1}", average_complete.round_to_one()));
+                    }
+                    PartAverage::None => {}
+                }
 
                 // Add new series if the current series is full
                 let mut index = self.series.len()-1;

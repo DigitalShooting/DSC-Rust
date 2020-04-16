@@ -19,8 +19,19 @@ impl ShotRaw {
     /// discipline:     Discipline to use to calculate ring
     pub fn random() -> ShotRaw {
         let mut rng = rand::thread_rng();
-        let x = rng.gen_range(-20000, 20000);
-        let y = rng.gen_range(-20000, 20000);
+        let a = rng.gen_range(0, 2);
+        
+        let mut x: i32 = 0;
+        let mut y: i32 = 0;
+        if (x == 0) {
+            x = rng.gen_range(-5000, 5000);
+            y = rng.gen_range(-5000, 5000);
+        }
+        if (x > 0) {
+            x = rng.gen_range(-15000, 15000);
+            y = rng.gen_range(-15000, 15000);
+        }
+        
         return ShotRaw { x, y };
     }
 
@@ -43,6 +54,9 @@ pub struct Shot {
     /// - no tenth 10.3 => ring_count = 10
     /// - tenth 10.3 => ring_count = 10.3
     pub ring_count: f64,
+    
+    pub is_inner_ten: bool,
+    pub number: i32,
 
     date: SystemTime,
 }
@@ -82,9 +96,12 @@ impl Shot {
         };
 
         let ring_text = format!("{:.1}", ring);
+        
+        let is_inner_ten = teiler <= f64::from(target.inner_ten);
+        let number = 0; // We set the number later
 
         let date = SystemTime::now();
-        return Shot {teiler, angle, x, y, ring, ring_text, ring_count, date};
+        return Shot {teiler, angle, x, y, ring, ring_text, ring_count, is_inner_ten, number, date};
     }
 
     /// Helper to calculate the actual ring for a given teiler

@@ -48,8 +48,8 @@ impl Config {
             line,
             disciplines,
             default_discipline,
-            // database: None,
-            database: Some(DatabaseConfig{db_url: "postgres://user:pass@localhost/user".to_string()}), // TODO
+            database: None,
+            // database: Some(DatabaseConfig{db_url: "postgres://user:pass@localhost/user".to_string()}), // TODO
             websocket,
         })
     }

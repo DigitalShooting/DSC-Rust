@@ -169,24 +169,42 @@ pub trait Update {
 impl Update for Session {
 
     fn new_target(&mut self, force: bool) {
-        let part_type = self.get_active_part().part_type.clone();
-        self.set_part(part_type, force);
+        // let part_type = self.get_active_part().part_type.clone();
+        // self.set_part(part_type, force);
+        
+        let active_part = &mut self.parts[self.active_part];
+        active_part.new_series();
     }
 
     fn set_part(&mut self, part_type: PartType, force: bool) {
-        // Check if we have a discipline part with the given name in the current discipline
-        if let Some(_) = self.discipline.get_part_from_type(part_type.clone()) {
-            if self.can_exit_part(force) {
+        if self.can_exit_part(force) {
+            
+            // Search in parts for a part with the given type, if found, we switch to it
+            for (i, part) in self.parts.iter().enumerate() {
+                if part.part_type == part_type {
+                    self.active_part = i;
+                    return
+                }
+            }
+            
+            
+            // Otherwise init a new part
+            if let Some(_) = self.discipline.get_part_from_type(part_type.clone()) {
                 self.parts.push(Part::new(part_type));
                 self.active_part = self.parts.len()-1;
             }
             else {
-                println!("Part change not allowed");
+                println!("Unkown type");
             }
+            
         }
         else {
-            println!("Unkown type");
+            println!("Part change not allowed");
         }
+        
+        
+        
+        
     }
 
     fn set_active_part(&mut self, index: ActivePart, force: bool) {

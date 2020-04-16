@@ -34,6 +34,8 @@ impl Demo {
 impl API for Demo {
     fn start(&mut self, tx: mpsc::Sender<Action>, rx: mpsc::Receiver<DeviceCommand>) {
 
+        // return;
+
         let interval = self.interval;
         let max_shots = self.max_shots;
         thread::spawn(move || {
