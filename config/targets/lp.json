@@ -107,7 +107,7 @@
   },
   "default_zoom": 1,
   "min_zoom": 0.3,
-  "inner_ten": 200,
+  "inner_ten": 475,
   "trial_corner_color": {
     "hex": "#0f0",
     "alpha": 0.7
