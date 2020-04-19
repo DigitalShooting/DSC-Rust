@@ -60,6 +60,7 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, man
             return;
         }
         let mut client = request.use_protocol("rust-websocket").accept().unwrap();
+        
 
         {
             let session_msg = SendType::Session {
@@ -79,7 +80,21 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, man
             thread::spawn(move || {
                 for incoming_message in receiver.incoming_messages() {
                     if let Ok(message) = incoming_message {
+                        
+                        // Check if the message is a close message, if so we save this in a flag
+                        let mut exitAfter = false;
+                        match message {
+                            OwnedMessage::Close(_) => exitAfter = true,
+                            _ => {},
+                        }
+                        
+                        // Send the message to the main client thread
                         tx.send(message).unwrap();
+                        
+                        // if we receved a close message, break the loop and exit this thread
+                        if exitAfter {
+                            break;
+                        }
                     }
                     thread::sleep(Duration::from_millis(100));
                 }
@@ -94,9 +109,10 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, man
                             // This client will be remove from the client_senders list by
                             // the next broadcast call, we return here, to exit the loop end the
                             // thread
-                            return;
+                            break;
                         },
                         OwnedMessage::Ping(ping) => {
+                            println!("ping");
                             let message = OwnedMessage::Pong(ping);
                             sender.send_message(&message).unwrap_or(());
                         },

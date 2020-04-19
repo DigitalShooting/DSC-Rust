@@ -19,17 +19,23 @@ impl ShotRaw {
     /// discipline:     Discipline to use to calculate ring
     pub fn random() -> ShotRaw {
         let mut rng = rand::thread_rng();
-        let a = rng.gen_range(0, 2);
+        let a = rng.gen_range(0, 3);
         
         let mut x: i32 = 0;
         let mut y: i32 = 0;
-        if (x == 0) {
+        if (a == 0) {
             x = rng.gen_range(-5000, 5000);
             y = rng.gen_range(-5000, 5000);
         }
-        if (x > 0) {
+        if (a == 1) {
+            x = rng.gen_range(-500, 500);
+            y = rng.gen_range(-500, 500);
+        }
+        if (a > 1) {
             x = rng.gen_range(-15000, 15000);
             y = rng.gen_range(-15000, 15000);
+            // x = rng.gen_range(-30000, 30000);
+            // y = rng.gen_range(-30000, 30000);
         }
         
         return ShotRaw { x, y };
