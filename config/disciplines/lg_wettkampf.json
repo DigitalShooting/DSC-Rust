@@ -1,6 +1,6 @@
 {
-  "id": "lg_training",
-  "title": "LG Training",
+  "id": "lg_wettkampf",
+  "title": "LG Wettkampf",
   "interface": {
     "ESA": {
       "port": "/dev/ttyS0",
@@ -19,7 +19,7 @@
       "name": "Probe",
       "has_trial_corner": true,
       "main_part": false,
-      "enable_reset_to_new_target": true,
+      "enable_reset_to_new_target": false,
       "series_length": 10,
       "number_of_shots": null,
       "show_infos": true,
@@ -50,7 +50,7 @@
         "type": "Average",
         "number_of_shots": 40
       },
-      "exit_type": "Always"
+      "exit_type": "BeforeFirst"
     }
   ]
 }

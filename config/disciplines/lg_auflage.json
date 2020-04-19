@@ -1,6 +1,6 @@
 {
-  "id": "lg_training",
-  "title": "LG Training",
+  "id": "lg_auflage",
+  "title": "LG Auflage",
   "interface": {
     "ESA": {
       "port": "/dev/ttyS0",
@@ -23,13 +23,13 @@
       "series_length": 10,
       "number_of_shots": null,
       "show_infos": true,
-      "count_mode": "Integer",
+      "count_mode": "Tenth",
       "time": {
         "type": "None"
       },
       "average": {
         "type": "Average",
-        "number_of_shots": 40
+        "number_of_shots": 30
       },
       "exit_type": "Always"
     },
@@ -40,17 +40,17 @@
       "main_part": true,
       "enable_reset_to_new_target": false,
       "series_length": 10,
-      "number_of_shots": 40,
+      "number_of_shots": 30,
       "show_infos": true,
-      "count_mode": "Integer",
+      "count_mode": "Tenth",
       "time": {
         "type": "None"
       },
       "average": {
         "type": "Average",
-        "number_of_shots": 40
+        "number_of_shots": 30
       },
-      "exit_type": "Always"
+      "exit_type": "BeforeFirst"
     }
   ]
 }

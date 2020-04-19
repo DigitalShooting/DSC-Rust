@@ -1,6 +1,6 @@
 {
-  "id": "lg_training",
-  "title": "LG Training",
+  "id": "lg_finale",
+  "title": "LG Finale",
   "interface": {
     "ESA": {
       "port": "/dev/ttyS0",
@@ -19,11 +19,11 @@
       "name": "Probe",
       "has_trial_corner": true,
       "main_part": false,
-      "enable_reset_to_new_target": true,
+      "enable_reset_to_new_target": false,
       "series_length": 10,
       "number_of_shots": null,
       "show_infos": true,
-      "count_mode": "Integer",
+      "count_mode": "Tenth",
       "time": {
         "type": "None"
       },
@@ -42,7 +42,7 @@
       "series_length": 10,
       "number_of_shots": 40,
       "show_infos": true,
-      "count_mode": "Integer",
+      "count_mode": "Tenth",
       "time": {
         "type": "None"
       },
@@ -50,7 +50,7 @@
         "type": "Average",
         "number_of_shots": 40
       },
-      "exit_type": "Always"
+      "exit_type": "BeforeFirst"
     }
   ]
 }
