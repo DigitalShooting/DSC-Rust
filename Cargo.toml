@@ -12,7 +12,7 @@ websocket = "0.24"
 time = "0.2.10"
 byteorder = "1.2.2"
 rand = "0.7.3"
-simplesvg = "0.4"
+# simplesvg = "0.4"
 dotenv = "0.9.0"
 tera = { version = "0.11.20" }
 clap = "2.32.0"

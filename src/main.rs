@@ -16,7 +16,7 @@ extern crate rand;
 
 // extern crate time;
 
-extern crate simplesvg;
+// extern crate simplesvg;
 
 extern crate tera;
 
