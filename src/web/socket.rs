@@ -13,16 +13,16 @@ use std::process::Command;
 use dsc_manager::{DSCManagerMutex, UpdateManager};
 use session::Update as SessionUpdate;
 use super::{Config, RequestType, SendType, ClientSenders};
-
+use config::Config as DSCConfig;
 
 
 /// Start websocket server on given address and port
 ///
 /// config:     Websocket config
 /// manager:    DSC Manager to use
-pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) -> Result<(), StdError> {
-    println!("[web::socket][start_websocket] start on: {}", config.address_port);
-    let server = Server::bind(config.address_port)?;
+pub fn start_websocket<'a>(socket_config: Config, config: DSCConfig, manager: DSCManagerMutex) -> Result<(), StdError> {
+    println!("[web::socket][start_websocket] start on: {}", socket_config.address_port);
+    let server = Server::bind(socket_config.address_port)?;
     let client_senders: ClientSenders = Arc::new(Mutex::new(vec![]));
 
     // dispatcher thread
@@ -32,7 +32,7 @@ pub fn start_websocket<'a>(config: Config, manager: DSCManagerMutex) -> Result<(
     for request in server.filter_map(Result::ok) {
         let (client_tx, client_rx) = mpsc::channel();
         client_senders.lock().unwrap().push(client_tx);
-        connect_client(client_rx, request, manager.clone());
+        connect_client(client_rx, request, config.clone(), manager.clone());
     }
     Ok(())
 }
@@ -52,22 +52,30 @@ type ClientRequest = WsUpgrade<TcpStream, Option<Buffer>>;
 ///             the tx channel is in the client_senders array
 /// request:    Client connection request
 /// manager:    DSCManagerMutex to perform requested actions
-fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, manager: DSCManagerMutex) {
+fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, config: DSCConfig, manager: DSCManagerMutex) {
     // Spawn a new thread for each connection.
     thread::spawn(move || {
-        if !request.protocols().contains(&"rust-websocket".to_string()) {
-            let _ = request.reject();
-            return;
-        }
-        let mut client = request.use_protocol("rust-websocket").accept().unwrap();
+        // if !request.protocols().contains(&"rust-websocket".to_string()) {
+        //     let _ = request.reject();
+        //     return;
+        // }
+        // let mut client = request.use_protocol("rust-websocket").accept().unwrap();
+        let mut client = request.accept().unwrap();
         
 
-        {
+        {   // Send the config on connect
+            let config_msg = SendType::Config {
+                config: config,
+            };
+            let text = serde_json::to_string(&config_msg).unwrap();
+            let message = OwnedMessage::Text(text);
+            client.send_message(&message).unwrap_or(());
+        }
+            
+        {   // Send current session on connect
             let session_msg = SendType::Session {
                 session: manager.lock().unwrap().session.clone(),
             };
-
-            // Send current session on connect
             let text = serde_json::to_string(&session_msg).unwrap();
             let message = OwnedMessage::Text(text);
             client.send_message(&message).unwrap_or(());
@@ -82,9 +90,9 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, man
                     if let Ok(message) = incoming_message {
                         
                         // Check if the message is a close message, if so we save this in a flag
-                        let mut exitAfter = false;
+                        let mut exit_after = false;
                         match message {
-                            OwnedMessage::Close(_) => exitAfter = true,
+                            OwnedMessage::Close(_) => exit_after = true,
                             _ => {},
                         }
                         
@@ -92,7 +100,7 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, man
                         tx.send(message).unwrap();
                         
                         // if we receved a close message, break the loop and exit this thread
-                        if exitAfter {
+                        if exit_after {
                             break;
                         }
                     }
@@ -150,13 +158,13 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
             match request_type {
                 RequestType::NewTarget => {
                     println!("RequestType::NewTarget");
-                    manager.lock().unwrap().new_target(false);
+                    manager.lock().unwrap().new_target();
                 },
                 RequestType::SetDisciplin{ name } => {
                     manager.lock().unwrap().set_disciplin_by_name(&name);
                 },
-                RequestType::SetPart{ name, forceNewPart } => {
-                    manager.lock().unwrap().set_part(name, false);
+                RequestType::SetPart{ name, force_new_part } => {
+                    manager.lock().unwrap().set_part(name, force_new_part);
                 },
                 RequestType::Print => {
                     manager.lock().unwrap().print_session();

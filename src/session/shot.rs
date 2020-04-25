@@ -23,15 +23,15 @@ impl ShotRaw {
         
         let mut x: i32 = 0;
         let mut y: i32 = 0;
-        if (a == 0) {
+        if a == 0 {
             x = rng.gen_range(-5000, 5000);
             y = rng.gen_range(-5000, 5000);
         }
-        if (a == 1) {
+        if a == 1 {
             x = rng.gen_range(-500, 500);
             y = rng.gen_range(-500, 500);
         }
-        if (a > 1) {
+        if a > 1 {
             x = rng.gen_range(-15000, 15000);
             y = rng.gen_range(-15000, 15000);
             // x = rng.gen_range(-30000, 30000);

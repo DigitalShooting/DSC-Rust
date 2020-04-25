@@ -74,7 +74,7 @@ impl AddShot for Part {
                 
                 match discipline_part.average {
                     PartAverage::Average{ number_of_shots } => {
-                        let average_complete = (self.sum.value / f64::from(self.number_of_shots));
+                        let average_complete = self.sum.value / f64::from(self.number_of_shots);
                         self.result_prediction = Some(format!("{:.0}", (average_complete * f64::from(number_of_shots)).round()));
                         self.average = Some(format!("{:.1}", average_complete.round_to_one()));
                     }

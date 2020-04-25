@@ -20,10 +20,10 @@ extern crate simplesvg;
 
 extern crate tera;
 
+extern crate time;
+
 extern crate clap;
 
-#[macro_use]
-extern crate diesel;
 extern crate dotenv;
 
 
@@ -39,7 +39,7 @@ mod database;
 mod print;
 
 use std::path::Path;
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, App};
 
 use config::Config;
 use dsc_manager::DSCManager;
@@ -76,16 +76,17 @@ fn main() {
 
 // Start DSCManager and init websocket
 fn start_dsc(config: Config) {
+    let main_config = config.clone();
     let websocket_config = config.websocket.clone();
 
     // Init manager
     let (manager, manager_thread) = DSCManager::new(config);
 
     // Start websocket server
-    let config = SocketConfig {
+    let socket_config = SocketConfig {
         address_port: websocket_config.url.to_string()
     };
-    socket::start_websocket(config, manager).unwrap();
+    socket::start_websocket(socket_config, main_config, manager).unwrap();
 
     // Run until manager (and socket?! TODO) finishes
     manager_thread.join().unwrap();

@@ -10,7 +10,7 @@ use device_api::api::{API, Action, DeviceCommand};
 use config::{Config, DatabaseConfig};
 use web::{SendType, Log};
 use print::print;
-use database::handler::{DBHandler, DBHandlerSQL, DBHandlerNone};
+use database::handler::{DBHandler, DBHandlerNone, DBHandlerFileSystem};
 
 pub type DSCManagerMutex = Arc<Mutex<DSCManager>>;
 pub type DSCManagerThread = thread::JoinHandle<()>;
@@ -37,7 +37,7 @@ enum ShotProviderState {
 /// - Move all other action to session
 pub struct DSCManager {
     pub session: Session,
-    db_handler: Box<DBHandler + Send>,
+    db_handler: Box<dyn DBHandler + Send>,
 
     // Channel for sending changes to the socket api
     pub on_update_tx: Option<mpsc::Sender<SendType>>,
@@ -54,16 +54,17 @@ pub struct DSCManager {
 impl DSCManager {
     pub fn new(config: Config) -> (DSCManagerMutex, DSCManagerThread) {
         // Init db handler, based on config
-        let db_handler: Box<DBHandler + Send> = match config.database {
-            Some(ref db_config) => Box::new(DBHandlerSQL::new(db_config)),
-            None => Box::new(DBHandlerNone::new()),
+        let db_handler: Box<dyn DBHandler + Send> = match config.database.clone() {
+            DatabaseConfig::None => Box::new(DBHandlerNone::new()),
+            DatabaseConfig::FileSystem{path} => Box::new(DBHandlerFileSystem::new(path)),
         };
+        // let db_handler = Box::new(DBHandlerNone::new());
 
         // TODO REMOVE and just init session in one method
         let discipline = config.default_discipline.clone();
         // let session_id = db_handler.new_session_id(config.line.id);
         // Dummy session, will change
-        let session = Session::new(0, config.line.clone(), discipline);
+        let session = Session::new("0".to_string(), config.line.clone(), discipline);
 
         let (get_from_device_tx, get_from_device_rx) = mpsc::channel::<Action>();
         let manager = DSCManager {
@@ -258,8 +259,8 @@ impl UpdateManager for DSCManager {
     }
 
     fn print_session(&self) {
-        let printError = print(&self.session);
-        println!("{:?}", printError);
+        let print_error = print(&self.session);
+        println!("{:?}", print_error);
     }
 }
 
@@ -268,9 +269,9 @@ impl UpdateManager for DSCManager {
 
 impl UpdateSession for DSCManager {
 
-    fn new_target(&mut self, force: bool) {
+    fn new_target(&mut self) {
         println!("new_target");
-        self.session.new_target(force);
+        self.session.new_target();
         self.update_sessions();
 
         // if let Some(d_part) = self.session.get_active_discipline_part() {

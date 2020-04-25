@@ -74,7 +74,7 @@ impl error::Error for Error {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::ConnectionError(ref e) => Some(e),
             Error::JSONError(ref e) => Some(e),

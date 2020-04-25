@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use tera::Error as TerraError;
 use tera::{Context, Tera};
-use std::process::Command;
+// use std::process::Command;
 
 use session::Session;
 
@@ -54,7 +54,7 @@ impl std::error::Error for Error {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::TemplateError(ref e) => Some(e),
             Error::SaveError(ref e) => Some(e),

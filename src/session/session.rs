@@ -15,7 +15,7 @@ pub type ActivePart = usize;
 /// - statistics
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Session {
-    pub id: i32,
+    pub id: String,
     pub parts: Vec<Part>,
     active_part: ActivePart,
     pub discipline: Discipline,
@@ -30,7 +30,7 @@ impl Session {
     /// line:           Line config to use
     /// discipline:     Discipline to use
     /// return:         Empty session
-    pub fn new(id: i32, line: Line, discipline: Discipline) -> Session {
+    pub fn new(id: String, line: Line, discipline: Discipline) -> Session {
         let part_type = discipline.parts[0].id.clone();
 
         let date = match discipline.time {
@@ -132,7 +132,7 @@ pub trait Update {
     /// type as the current one.
     ///
     /// force:   Flag if we should check if the discipline allows a part change ot not
-    fn new_target(&mut self, force: bool);
+    fn new_target(&mut self);
 
 
 
@@ -168,12 +168,22 @@ pub trait Update {
 
 impl Update for Session {
 
-    fn new_target(&mut self, force: bool) {
+    fn new_target(&mut self) {
         // let part_type = self.get_active_part().part_type.clone();
         // self.set_part(part_type, force);
         
-        let active_part = &mut self.parts[self.active_part];
-        active_part.new_series();
+        if let Some(discipline_part) = self.get_active_discipline_part() {
+            if discipline_part.enable_reset_to_new_target {
+                let active_part = &mut self.parts[self.active_part];
+                active_part.new_series();
+            }
+            else {
+                println!("New target not allowed");
+            }
+        }
+        else {
+            println!("Unkown part");
+        }
     }
 
     fn set_part(&mut self, part_type: PartType, force: bool) {
@@ -233,7 +243,7 @@ mod test {
 
     fn get_session() -> Session {
         let discipline = helper::dsc_demo::lg_discipline();
-        return Session::new(0, Line::demo(), discipline);
+        return Session::new("0".to_string(), Line::demo(), discipline);
     }
 
     #[test]
@@ -260,7 +270,7 @@ mod test {
     fn test_new_target() {
         let mut session = get_session();
         assert_eq!(0, session.active_part);
-        session.new_target(false);
+        session.new_target();
         assert_eq!(1, session.active_part);
         session.get_active_discipline_part();
     }

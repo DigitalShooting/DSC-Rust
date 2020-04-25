@@ -29,7 +29,7 @@ pub enum RequestType {
     SetDisciplin {name: String},
 
     /// Start new part with given id
-    SetPart {name: String, forceNewPart: bool},
+    SetPart {name: String, force_new_part: bool},
 
     /// Print Current Session
     Print,
