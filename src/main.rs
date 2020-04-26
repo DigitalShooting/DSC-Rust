@@ -54,21 +54,29 @@ use web::{Config as SocketConfig, socket};
 // 2. Start DSC
 fn main() {
     let matches = App::new("DSC")
-                          .version("1.0")
-                          .author("Jannik Lorenz <mail@janniklorenz.de>")
-                          .about("Digital Shooting Client")
-                          .arg(Arg::with_name("config")
-                               .short("c")
-                               .long("config")
-                               .value_name("DIR")
-                               .help("Custiom dir for config, if not present, ./config will be used")
-                               .required(false)
-                               .takes_value(true))
+                        .version("1.0")
+                        .author("Jannik Lorenz <mail@janniklorenz.de>")
+                        .about("Digital Shooting Client")
+                        .arg(Arg::with_name("config")
+                            .short("c")
+                            .long("config")
+                            .value_name("FILE")
+                            .help("Path to mail json config file, if not present ./config/config.json will be used")
+                            .required(false)
+                            .takes_value(true))
+                        .arg(Arg::with_name("modes")
+                        .short("m")
+                            .long("modes")
+                            .value_name("DIR")
+                            .help("Path to modes dir, if not present ./config/modes/ will be used")
+                            .required(false)
+                            .takes_value(true))
                           .get_matches();
 
-    let config_dir = matches.value_of("config").unwrap_or("./config/");
+    let config_dir = matches.value_of("config").unwrap_or("./config/config.json");
+    let modes_dir = matches.value_of("modes").unwrap_or("./config/modes/");
 
-    match Config::new(Path::new(config_dir)) {
+    match Config::new(Path::new(config_dir), Path::new(modes_dir)) {
         Ok(config) => start_dsc(config),
         Err(err) => println!("Error in config: {}", err),
     }

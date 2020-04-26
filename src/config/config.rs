@@ -31,6 +31,16 @@ pub struct WebSocketConfig {
 
 
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MainConfig {
+    pub line: Line,
+    pub default_discipline: String,
+    pub database: DatabaseConfig,
+    pub websocket: WebSocketConfig,
+}
+
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
@@ -42,20 +52,29 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(config_dir: &Path) -> Result<Config> {
-        let line = Config::parse_line(config_dir.join("line.json"))?;
-        let targets = Config::parse_targets(config_dir.join("targets/"))?;
-        let disciplines = Config::parse_disciplines(config_dir.join("disciplines/"), targets)?;
-        let default_discipline = Config::parse_default_discipline(config_dir.join("default_discipline.json"), &disciplines)?;
-        let websocket = Config::parse_websocket(config_dir.join("websocket.json"))?;
-        let database = Config::parse_database(config_dir.join("database.json"))?;
+    pub fn new(config_dir: &Path, modes_dir: &Path) -> Result<Config> {
+        
+        
+        
+        let targets = Config::parse_targets(modes_dir.join("targets/"))?;
+        let disciplines = Config::parse_disciplines(modes_dir.join("disciplines/"), targets)?;
+        
+        let config = Config::parse_config(config_dir.to_path_buf(), &disciplines)?;
+        let default_discipline = Config::get_default_discipline(config.default_discipline, &disciplines)?;
+
+        
+        
+        // let line = Config::parse_line(config_dir.join("line.json"))?;
+        // let default_discipline = Config::parse_default_discipline(config_dir.join("default_discipline.json"), &disciplines)?;
+        // let websocket = Config::parse_websocket(config_dir.join("websocket.json"))?;
+        // let database = Config::parse_database(config_dir.join("database.json"))?;
         
         Ok(Config {
-            line,
+            line: config.line,
             disciplines,
             default_discipline,
-            database,
-            websocket,
+            database: config.database,
+            websocket: config.websocket,
         })
     }
 
@@ -84,32 +103,36 @@ impl Config {
     }
 
 
+    // fn parse_line(path: PathBuf) -> Result<Line> {
+    //     let raw_json = Config::read_file(path)?;
+    //     let line: Line = serde_json::from_str(&raw_json)?;
+    //     Ok(line)
+    // }
 
-    fn parse_line(path: PathBuf) -> Result<Line> {
-        let raw_json = Config::read_file(path)?;
-        let line: Line = serde_json::from_str(&raw_json)?;
-        Ok(line)
-    }
+    // fn parse_websocket(path: PathBuf) -> Result<WebSocketConfig> {
+    //     let raw_json = Config::read_file(path)?;
+    //     let websocket: WebSocketConfig = serde_json::from_str(&raw_json)?;
+    //     Ok(websocket)
+    // }
+    
+    // fn parse_database(path: PathBuf) -> Result<DatabaseConfig> {
+    //     let raw_json = Config::read_file(path)?;
+    //     let database_config: DatabaseConfig = serde_json::from_str(&raw_json)?;
+    //     Ok(database_config)
+    // }
 
-    fn parse_websocket(path: PathBuf) -> Result<WebSocketConfig> {
+
+
+    fn parse_config(path: PathBuf, disciplines: &HashMap<String, Discipline>) -> Result<MainConfig> {
         let raw_json = Config::read_file(path)?;
-        let websocket: WebSocketConfig = serde_json::from_str(&raw_json)?;
-        Ok(websocket)
+        let config: MainConfig = serde_json::from_str(&raw_json)?;
+        Ok(config)
     }
     
-    fn parse_database(path: PathBuf) -> Result<DatabaseConfig> {
-        let raw_json = Config::read_file(path)?;
-        let database_config: DatabaseConfig = serde_json::from_str(&raw_json)?;
-        Ok(database_config)
-    }
+    
 
-
-
-    fn parse_default_discipline(path: PathBuf, disciplines: &HashMap<String, Discipline>) -> Result<Discipline> {
-        let raw_json = Config::read_file(path)?;
-        let json: serde_json::Value = serde_json::from_str(&raw_json)?;
-        let discipline_id = json["name"].as_str().unwrap();
-        match disciplines.get(discipline_id) {
+    fn get_default_discipline(default_discipline_id: String, disciplines: &HashMap<String, Discipline>) -> Result<Discipline> {
+        match disciplines.get(&default_discipline_id) {
             Some(discipline) => Ok(discipline.clone()),
             None => Err(ConfigError::DefaultDisciplineNotFound),
         }

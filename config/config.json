@@ -1,0 +1,15 @@
+{
+  "database": {
+    "mode": "FileSystem",
+    "path": "/Users/firebug/Desktop/dsc_data"
+  },
+  "line": {
+    "id": 1,
+    "name": "Linie 1",
+    "short_name": "1"
+  },
+  "default_discipline": "lg_demo",
+  "websocket": {
+    "url": "0.0.0.0:3008"
+  }
+}
