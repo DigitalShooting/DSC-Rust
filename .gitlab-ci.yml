@@ -6,7 +6,8 @@ build:
   image: rust:latest
   script:
     - cargo build --release
+    - mv target/release/dsc dsc
   artifacts:
     paths:
-      - ./target/release
-      - ./config/
+      - ./config
+      - ./dsc
