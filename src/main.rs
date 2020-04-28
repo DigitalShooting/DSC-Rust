@@ -26,8 +26,6 @@ extern crate clap;
 
 extern crate dotenv;
 
-extern crate libmdns;
-
 
 mod config;
 mod discipline;
@@ -78,34 +76,6 @@ fn main() {
 
     let config_dir = matches.value_of("config").unwrap_or("./config/config.json");
     let modes_dir = matches.value_of("modes").unwrap_or("./config/modes/");
-
-
-
-    
-
-    
-    
-    thread::spawn(move || {
-        
-        // let mut builder = env_logger::Builder::new();
-        // builder.parse_filters("libmdns=debug");
-        // builder.init();
-        
-        let responder = libmdns::Responder::new().unwrap();
-        let _svc = responder.register(
-            "_http._tcp".to_owned(),
-            "DSC".to_owned(),
-            3000,
-            &["path=/"],
-        );
-        
-        loop {
-            ::std::thread::sleep(::std::time::Duration::from_secs(10));
-        }
-    
-    });
-
-
 
     match Config::new(Path::new(config_dir), Path::new(modes_dir)) {
         Ok(config) => start_dsc(config),
