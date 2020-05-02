@@ -108,6 +108,8 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, con
                 }
             });
 
+
+            let mut loop_count_ping = 0;
             loop {
                 if let Ok(message) = rx.try_recv() {
                     match message {
@@ -120,7 +122,6 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, con
                             break;
                         },
                         OwnedMessage::Ping(ping) => {
-                            println!("ping");
                             let message = OwnedMessage::Pong(ping);
                             sender.send_message(&message).unwrap_or(());
                         },
@@ -134,6 +135,16 @@ fn connect_client(public_rx: mpsc::Receiver<String>, request: ClientRequest, con
                 if let Ok(message) = public_rx.try_recv() {
                     let message = OwnedMessage::Text(message);
                     sender.send_message(&message).unwrap_or(());
+                }
+                
+                // println!("send ping {}", loop_count_ping);
+                if loop_count_ping > 10*5 {
+                    let message = OwnedMessage::Ping(vec![]);
+                    sender.send_message(&message).unwrap_or(());
+                    loop_count_ping = 0;
+                }
+                else {
+                    loop_count_ping += 1;
                 }
 
                 thread::sleep(Duration::from_millis(100));
