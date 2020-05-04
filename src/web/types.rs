@@ -42,6 +42,12 @@ pub enum RequestType {
 
     /// Move the paper and check its movement
     CheckPaper,
+    
+    /// Request all sessions since 
+    GetStoredSessions {since: SystemTime},
+    
+    // Halt System
+    ShutdownLine,
 }
 
 /// Base type for server -> client websocket packages
@@ -54,6 +60,8 @@ pub enum SendType {
     /// TODO replace with custom config struct for websockets
     /// which contains possible disicplines, line info, etc.
     Config {config: DSCConfig},
+    
+    StoredSessions {sessions: Vec<Session>},
 
     // Log message
     Log {log: Log}

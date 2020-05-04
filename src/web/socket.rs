@@ -190,6 +190,16 @@ fn process_message(manager: &DSCManagerMutex, message: String) {
                 RequestType::CheckPaper => {
                     manager.lock().unwrap().check_paper();
                 }
+                RequestType::GetStoredSessions{ since } => {
+                    let x = manager.lock().unwrap().get_stored_sessions(since);
+                }
+                RequestType::ShutdownLine => {
+                    Command::new("sudo")
+                        .arg("/sbin/shutdown")
+                        .arg("-h")
+                        .arg("now")
+                        .spawn().unwrap();
+                }
             };
         },
         Err(err) => println!("Parsing Error {:?}", err),

@@ -2,6 +2,7 @@ use std::sync::{mpsc};
 use std::thread;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 
 use session::{Session, Update as UpdateSession, PartType, ActivePart, AddShotRaw};
 use discipline::*;
@@ -105,6 +106,10 @@ impl DSCManager {
     }
 
 
+
+    pub fn get_stored_sessions(&self, since: SystemTime) -> Vec<Session> {
+        return self.db_handler.get_stored_sessions(since);
+    }
 
     /// Send current session to the client
     fn update_sessions(&mut self) {

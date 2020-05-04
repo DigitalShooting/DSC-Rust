@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use serde_json;
 use std::fs::File;
 use std::io::prelude::*;
+use std::time::SystemTime;
 
 // use std::error::Error;
 use time::OffsetDateTime;
@@ -19,6 +20,8 @@ pub trait DBHandler {
 
     // Update given session object in database
     fn update_sesssion(&self, session: &Session);
+    
+    fn get_stored_sessions(&self, since: SystemTime) -> Vec<Session>;
 }
 
 
@@ -41,6 +44,10 @@ impl DBHandler for DBHandlerNone {
         return "0".to_string();
     }
     fn update_sesssion(&self, _session: &Session) {}
+    
+    fn get_stored_sessions(&self, since: SystemTime) -> Vec<Session> {
+        return vec![];
+    }
 }
 
 
@@ -101,5 +108,9 @@ impl DBHandler for DBHandlerFileSystem {
             Err(why) => panic!("couldn't write to: {:?}", why),
             Ok(_) => (),
         }
+    }
+    
+    fn get_stored_sessions(&self, since: SystemTime) -> Vec<Session> {
+        return vec![];
     }
 }
